@@ -1,0 +1,249 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+:root {
+  --snippet-drawer-width: 250px;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: sans-serif;
+  overflow: hidden;
+  background-color: #1e1e1e;
+}
+
+.ide-container {
+  display: flex;
+  flex-grow: 1; /* Allow this container to fill the space */
+  width: 100%;
+  min-height: 0; /* Prevent flexbox overflow issues */
+}
+
+#editor-container {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 50%;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+#editor-container.stowed {
+  flex-basis: 0 !important;
+}
+
+#resizer {
+  flex: 0 0 3px;
+  cursor: col-resize;
+  background-color: #333;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+#resizer:hover {
+  background-color: #555;
+}
+
+#stow-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 34px;
+  background-color: #444;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: background-color 0.2s;
+}
+
+#stow-button:hover {
+  background-color: #5a5a5a;
+}
+
+#preview-container {
+  flex: 1 1 auto;
+  position: relative;
+}
+
+#preview-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+/* --- Status Bar Styles --- */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #1e1e1e;
+  height: 40px;
+  padding: 0 20px;
+  border-top: 1px solid #333;
+  box-sizing: border-box;
+}
+
+.status-bar-button {
+  background-color: transparent;
+  color: #ccc;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, border-color 0.2s, margin-left 0.3s ease-in-out;
+  margin-left: 0;
+}
+
+.status-bar-button.open {
+  margin-left: 250px;
+}
+
+.status-bar-button:hover {
+  background-color: #444;
+  border-color: #555;
+}
+
+.shortcut-reminder-text {
+  color: #888;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 0 10px;
+}
+
+/* --- Snippet Drawer Styles --- */
+
+#snippet-drawer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--snippet-drawer-width);
+    height: 100%;
+    background-color: #000;
+    z-index: 199;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    box-sizing: border-box;
+    border-right: 1px solid #333;
+    padding: 0;
+    overflow: auto;
+}
+
+#snippet-drawer.open {
+    transform: translateX(0);
+}
+
+.drawer-title {
+    color: #fff;
+    font-weight: bold;
+    background-color: #000;
+    padding: 40px 30px 12px 30px;
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.accordion-container {
+  padding: 0 15px;
+}
+
+.snippet-section-header {
+  background-color: #222;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 12px 15px;
+  width: 100%;
+  border: 1px solid #444;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -1px;
+}
+
+.snippet-section:first-child .snippet-section-header {
+  margin-top: 0;
+}
+
+.snippet-section-header:hover {
+  background-color: #333;
+}
+
+.snippet-section-header .icon {
+  font-size: 12px;
+}
+
+.collapsible-content {
+  padding: 0 15px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  background-color: #333;
+}
+
+.collapsible-content.open {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  max-height: 500px;
+  transition: max-height 0.5s ease-in;
+}
+
+.snippet-button {
+  display: block;
+  background-color: transparent;
+  border: none;
+  color: #ccc;
+  padding: 8px 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: Consolas, 'Courier New', monospace;
+  transition: color 0.2s;
+}
+
+.snippet-button:hover {
+    color: #fff;
+}

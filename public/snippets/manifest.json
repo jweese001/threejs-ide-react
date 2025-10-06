@@ -1,0 +1,81 @@
+{
+  "categories": [
+    {
+      "name": "Cameras",
+      "items": [
+        { "name": "Array Camera", "file": "cameras/array-camera.js" },
+        { "name": "Camera (Base)", "file": "cameras/camera.js" },
+        { "name": "Cube Camera", "file": "cameras/cube-camera.js" },
+        { "name": "Orthographic Camera", "file": "cameras/orthographic-camera.js" },
+        { "name": "Perspective Camera", "file": "cameras/perspective-camera.js" },
+        { "name": "Stereo Camera", "file": "cameras/stereo-camera.js" }
+      ]
+    },
+    {
+      "name": "Examples",
+      "items": [
+        { "name": "Empty Scene", "file": "examples/empty-scene.js" },
+        { "name": "Solar System", "file": "examples/solar-system.js" },
+        { "name": "Spinning Red Cube", "file": "examples/spinning-red-cube.js" },
+        { "name": "Particles and Points", "file": "examples/particles-points.js" }
+      ]
+    },
+    {
+      "name": "Geometries",
+      "items": [
+        { "name": "Box", "file": "geometries/box.js" },
+        { "name": "Capsule", "file": "geometries/capsule.js" },
+        { "name": "Cone", "file": "geometries/cone.js" },
+        { "name": "Cylinder", "file": "geometries/cylinder.js" },
+        { "name": "Edges", "file": "geometries/edges.js" },
+        { "name": "Extrude", "file": "geometries/extrude.js" },
+        { "name": "Icosahedron", "file": "geometries/icosahedron.js" },
+        { "name": "Lathe", "file": "geometries/lathe.js" },
+        { "name": "Octahedron", "file": "geometries/octahedron.js" },
+        { "name": "Plane", "file": "geometries/plane.js" },
+        { "name": "Sphere", "file": "geometries/sphere.js" },
+        { "name": "Torus", "file": "geometries/torus.js" }
+      ]
+    },
+    {
+      "name": "Helpers",
+      "items": [
+        { "name": "Axes", "file": "helpers/axes.js" },
+        { "name": "Grid", "file": "helpers/grid.js" },
+        { "name": "Starfield", "file": "helpers/starfield.js" }
+      ]
+    },
+    {
+      "name": "Lights",
+      "items": [
+        { "name": "Ambient", "file": "lights/ambient.js" },
+        { "name": "Directional", "file": "lights/directional.js" },
+        { "name": "Hemisphere", "file": "lights/hemisphere.js" },
+        { "name": "Point", "file": "lights/point.js" }
+      ]
+    },
+    {
+      "name": "Loaders",
+      "items": [
+        { "name": "OBJ Loader", "file": "loaders/obj-loader.js" },
+        { "name": "OBJ Loader Scene", "file": "loaders/obj-loader-scene.js" }
+      ]
+    },
+    {
+      "name": "Materials",
+      "items": [
+        { "name": "Basic", "file": "materials/basic.js" },
+        { "name": "Depth", "file": "materials/depth.js" },
+        { "name": "Lambert", "file": "materials/lambert.js" },
+        { "name": "MatCap", "file": "materials/matcap.js" },
+        { "name": "Normal", "file": "materials/normal.js" },
+        { "name": "Phong", "file": "materials/phong.js" },
+        { "name": "Physical", "file": "materials/physical.js" },
+        { "name": "Points", "file": "materials/points.js" },
+        { "name": "Shadow", "file": "materials/shadow.js" },
+        { "name": "Standard", "file": "materials/standard.js" },
+        { "name": "Wireframe", "file": "materials/wireframe.js" }
+      ]
+    }
+  ]
+}

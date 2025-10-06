@@ -1,0 +1,48 @@
+# Documentation (project-specific)
+CLAUDE.md
+TASKS.md
+README.md
+
+# Testing
+playwright.config.ts
+tests/
+
+# Dependencies
+node_modules/
+
+# Test artifacts
+test-results/
+screenshots/
+playwright-report/
+
+# Logs
+*.log
+
+# Analysis/report files (temporary)
+*ANALYSIS*.md
+*REPORT*.md
+*SUMMARY*.md
+analysis-report.html
+analysis-report.json
+comprehensive-report.json
+*.html
+analyze-app.js
+comprehensive-analysis.js
+test-*.spec.js
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store

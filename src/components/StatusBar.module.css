@@ -1,0 +1,41 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #1e1e1e;
+  height: 40px;
+  padding: 0 20px;
+  border-top: 1px solid #333;
+  box-sizing: border-box;
+}
+
+.status-bar-button {
+  background-color: transparent;
+  color: #ccc;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    margin-left 0.3s ease-in-out; /* Add margin-left transition */
+  margin-left: 0; /* Initial margin */
+}
+
+.status-bar-button.open {
+  margin-left: 250px; /* Slide open by adding margin */
+}
+
+.status-bar-button:hover {
+  background-color: #444;
+  border-color: #555;
+}
+
+.shortcut-reminder-text {
+  color: #888;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 0 10px; /* Match button padding */
+}
