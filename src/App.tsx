@@ -433,6 +433,7 @@ This scene uses Three.js v0.157.0 loaded from CDN.
           style={{ flexBasis: isEditorStowed ? '0%' : `${editorWidth}%` }}
         >
           <Editor
+            ref={editorRef}
             value={code}
             onChange={handleCodeChange}
             onMount={handleEditorMount}

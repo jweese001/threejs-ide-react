@@ -14,9 +14,11 @@ export interface EditorRef {
 
 const Editor = forwardRef<EditorRef, EditorProps>(({ value, onChange, onMount }, ref) => {
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof Monaco | null>(null);
 
   const handleEditorDidMount = (editor: Monaco.editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
 
     // Set up Monaco Editor options
     editor.updateOptions({
@@ -48,20 +50,22 @@ const Editor = forwardRef<EditorRef, EditorProps>(({ value, onChange, onMount },
   // Expose a function to the parent component via the ref
   useImperativeHandle(ref, () => ({
     insertText(text: string) {
-      if (editorRef.current) {
+      if (editorRef.current && monacoRef.current) {
         const position = editorRef.current.getPosition();
-        editorRef.current.executeEdits('snippet-inserter', [
-          {
-            range: new window.monaco.Range(
-              position.lineNumber,
-              position.column,
-              position.lineNumber,
-              position.column
-            ),
-            text: text,
-          },
-        ]);
-        editorRef.current.focus();
+        if (position) {
+          editorRef.current.executeEdits('snippet-inserter', [
+            {
+              range: new monacoRef.current.Range(
+                position.lineNumber,
+                position.column,
+                position.lineNumber,
+                position.column
+              ),
+              text: text,
+            },
+          ]);
+          editorRef.current.focus();
+        }
       }
     },
   }));
@@ -85,5 +89,7 @@ const Editor = forwardRef<EditorRef, EditorProps>(({ value, onChange, onMount },
     />
   );
 });
+
+Editor.displayName = 'Editor';
 
 export default Editor;
