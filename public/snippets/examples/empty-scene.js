@@ -39,8 +39,8 @@ function init() {
     hemiLight.position.set(0, 1, 0);
     scene.add(hemiLight);
 
-    // window.addEventListener('resize', handleResize);
-    // animate();
+    window.addEventListener('resize', handleResize);
+    animate();
 }
 
 function handleResize() {
