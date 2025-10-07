@@ -25,7 +25,6 @@ playwright-report/
 analysis-report.html
 analysis-report.json
 comprehensive-report.json
-*.html
 analyze-app.js
 comprehensive-analysis.js
 test-*.spec.js
