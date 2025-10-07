@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        // Dynamically set base href for GitHub Pages
-        // Extract base path from current location
-        const pathname = window.location.pathname;
-        const match = pathname.match(/^(\/[^\/]+)\/preview\.html$/);
-        if (match) {
-            // On GitHub Pages: /repo-name/preview.html -> base is /repo-name/
-            document.write('<base href="' + match[1] + '/">');
-        } else {
-            // Local dev: /preview.html -> base is /
-            document.write('<base href="/">');
-        }
+        // Set base path for asset loading
+        window.BASE_PATH = (() => {
+            const pathname = window.location.pathname;
+            const match = pathname.match(/^(\/[^\/]+)\//);
+            return match ? match[1] + '/' : '/';
+        })();
+    </script>
+    <base></base>
+    <script>
+        // Set the base href
+        document.querySelector('base').href = window.BASE_PATH;
     </script>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https:;">
     <title>Preview</title>
