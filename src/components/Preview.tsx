@@ -5,12 +5,14 @@ interface PreviewProps {
 }
 
 const Preview = React.forwardRef<HTMLIFrameElement, PreviewProps>(({ isDragging }, ref) => {
+  // Use import.meta.env.BASE_URL to handle GitHub Pages base path
+  const previewSrc = `${import.meta.env.BASE_URL}preview.html`;
 
   return (
     <iframe
       id="preview-frame"
       ref={ref} // Attach the ref here
-      src="/preview.html"
+      src={previewSrc}
       sandbox="allow-scripts allow-same-origin allow-modals"
       style={{
         width: '100%',
