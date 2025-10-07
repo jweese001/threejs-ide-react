@@ -18,3 +18,6 @@ const extrudeSettings = {
 };
 
 const geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+const material = new THREE.MeshStandardMaterial( { color: 0x00ff00 } );
+const mesh = new THREE.Mesh( geometry, material );
+scene.add( mesh );
