@@ -26,7 +26,7 @@ const SnippetDrawer: React.FC<SnippetDrawerProps> = ({ onSnippetInsert, isOpen, 
 
   useEffect(() => {
     setLoading(true);
-    fetch('/snippets/manifest.json')
+    fetch(`${import.meta.env.BASE_URL}snippets/manifest.json`)
       .then(response => response.json())
       .then(data => {
         setCategories(data.categories);
@@ -47,7 +47,7 @@ const SnippetDrawer: React.FC<SnippetDrawerProps> = ({ onSnippetInsert, isOpen, 
 
   const handleSnippetClick = (snippetFile: string) => {
     setLoadingSnippet(snippetFile);
-    fetch(`/snippets/${snippetFile}`)
+    fetch(`${import.meta.env.BASE_URL}snippets/${snippetFile}`)
       .then(response => response.text())
       .then(code => {
         if (code && onSnippetInsert) {
