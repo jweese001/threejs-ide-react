@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/">
+    <script>
+        // Dynamically set base href for GitHub Pages
+        const pathSegments = window.location.pathname.split('/').filter(Boolean);
+        if (pathSegments.length > 0 && pathSegments[0] !== 'preview.html') {
+            document.querySelector('base').href = '/' + pathSegments[0] + '/';
+        }
+    </script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https:;">
+    <title>Preview</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <script>
+        // Intercept console methods and forward to parent
+        (function() {
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                window.parent.postMessage({
+                    type: 'console',
+                    payload: { level: 'log', args: args }
+                }, window.location.origin);
+            };
+
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                window.parent.postMessage({
+                    type: 'console',
+                    payload: { level: 'warn', args: args }
+                }, window.location.origin);
+            };
+
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                window.parent.postMessage({
+                    type: 'console',
+                    payload: { level: 'error', args: args }
+                }, window.location.origin);
+            };
+        })();
+
+        window.addEventListener('message', (event) => {
+            // IMPORTANT: Check the origin of the message for security
+            if (event.origin !== window.location.origin) {
+                console.error("Discarding message from unknown origin:", event.origin);
+                return;
+            }
+
+            const { type, code } = event.data;
+
+            if (type === 'executeCode') {
+                // 1. Clean up previous script and its URL
+                const oldScript = document.getElementById('user-script');
+                if (oldScript) {
+                    const oldUrl = oldScript.src;
+                    if (oldUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(oldUrl);
+                    }
+                    oldScript.remove();
+                }
+                // Clear any leftover elements from previous runs
+                while (document.body.firstChild) {
+                    document.body.removeChild(document.body.firstChild);
+                }
+
+                // 2. Create a new script from a Blob URL
+                const blob = new Blob([code], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+
+                const script = document.createElement('script');
+                script.id = 'user-script';
+                script.type = 'module';
+                script.src = url;
+                
+                // 3. Handle errors
+                script.onerror = (error) => {
+                    // This will catch syntax errors in the module itself
+                    window.parent.postMessage({ type: 'error', payload: { message: `Error in script: ${error.message}` } }, window.location.origin);
+                };
+
+                document.body.appendChild(script);
+            }
+        });
+
+        // Notify the parent window that the iframe is ready
+        window.parent.postMessage({ type: 'ready' }, window.location.origin);
+    </script>
+</body>
+</html>
