@@ -73,6 +73,15 @@
             const { type, code } = event.data;
 
             if (type === 'executeCode') {
+                // Prepend base path to asset URLs in the code
+                let modifiedCode = code;
+                if (window.BASE_PATH && window.BASE_PATH !== '/') {
+                    // Replace absolute asset paths with base path
+                    modifiedCode = code.replace(
+                        /(['"`])(\/(?:models|images|textures|assets)\/[^'"`]+)\1/g,
+                        `$1${window.BASE_PATH}$2$1`
+                    );
+                }
                 // 1. Clean up previous script and its URL
                 const oldScript = document.getElementById('user-script');
                 if (oldScript) {
@@ -88,7 +97,7 @@
                 }
 
                 // 2. Create a new script from a Blob URL
-                const blob = new Blob([code], { type: 'text/javascript' });
+                const blob = new Blob([modifiedCode], { type: 'text/javascript' });
                 const url = URL.createObjectURL(blob);
 
                 const script = document.createElement('script');
