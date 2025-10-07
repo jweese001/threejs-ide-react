@@ -7,6 +7,7 @@ import Resizer from './components/Resizer.tsx';
 import StatusBar from './components/StatusBar.tsx';
 import ErrorOverlay from './components/ErrorOverlay.tsx';
 import ShortcutsModal from './components/ShortcutsModal.tsx';
+import ConsolePanel, { ConsoleMessage } from './components/ConsolePanel.tsx';
 import type * as Monaco from 'monaco-editor';
 import JSZip from 'jszip';
 
@@ -176,6 +177,14 @@ function animate() {
 
 init();`;
 
+// Console message patterns to ignore (noise reduction)
+const CONSOLE_IGNORE_PATTERNS = [
+  /context lost/i,
+  /webgl.*context/i,
+  /three\.webglrenderer.*context/i,
+  /^\d+% loaded$/i, // Ignore "X% loaded" messages
+];
+
 function App() {
   const [code, setCode] = useState(defaultCode);
   const [editorWidth, setEditorWidth] = useState(50);
@@ -185,6 +194,10 @@ function App() {
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([]);
+  const [consoleHeight, setConsoleHeight] = useState(200);
+  const [messageIdCounter, setMessageIdCounter] = useState(0);
+  const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const editorRef = useRef<EditorRef>(null);
   const monacoEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -228,6 +241,24 @@ function App() {
         setIsIframeReady(true);
       } else if (type === 'reset') {
         runCode();
+      } else if (type === 'console') {
+        // Handle console messages from iframe
+        const { level, args } = payload as { level: 'log' | 'warn' | 'error'; args: any[] };
+        const message = args.map(arg => String(arg)).join(' ');
+
+        // Ignore common noise messages
+        const shouldIgnore = CONSOLE_IGNORE_PATTERNS.some(pattern => pattern.test(message));
+
+        if (!shouldIgnore) {
+          setConsoleMessages(prev => [...prev, {
+            id: messageIdCounter,
+            type: level,
+            message: message,
+            timestamp: new Date(),
+            args: args
+          }]);
+          setMessageIdCounter(prev => prev + 1);
+        }
       }
     };
 
@@ -236,7 +267,7 @@ function App() {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [runCode]);
+  }, [runCode, messageIdCounter]);
 
   // Run code on initial load and on subsequent changes
   useEffect(() => {
@@ -246,6 +277,14 @@ function App() {
   const handleCodeChange = (newCode) => {
     setCode(newCode);
     setError(null); // Clear error on code change
+  };
+
+  const handleClearConsole = () => {
+    setConsoleMessages([]);
+  };
+
+  const handleConsoleResize = (newHeight: number) => {
+    setConsoleHeight(newHeight);
   };
 
   const handleEditorMount = (editor: Monaco.editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
@@ -453,12 +492,22 @@ This scene uses Three.js v0.157.0 loaded from CDN.
           <ErrorOverlay error={error} onClose={() => setError(null)} />
         </div>
       </div>
+      {isConsoleOpen && (
+        <ConsolePanel
+          messages={consoleMessages}
+          onClear={handleClearConsole}
+          height={consoleHeight}
+          onResize={handleConsoleResize}
+        />
+      )}
       <StatusBar
         onToggleSnippets={toggleSnippetDrawer}
         isSnippetDrawerOpen={isSnippetDrawerOpen}
         onExportCode={handleExportCode}
         isExporting={isExporting}
         onShowShortcuts={() => setIsShortcutsOpen(true)}
+        onToggleConsole={() => setIsConsoleOpen(!isConsoleOpen)}
+        isConsoleOpen={isConsoleOpen}
       />
       <ShortcutsModal
         isOpen={isShortcutsOpen}

@@ -131,12 +131,17 @@ html {
   padding: 5px 10px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s, border-color 0.2s, margin-left 0.3s ease-in-out;
-  margin-left: 0;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-.status-bar-button.open {
+.status-bar-button.snippets-open {
   margin-left: 250px;
+  transition: margin-left 0.3s ease-in-out;
+}
+
+.status-bar-button.active {
+  background-color: #333;
+  border-color: #555;
 }
 
 .status-bar-button:hover {

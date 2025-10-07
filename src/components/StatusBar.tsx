@@ -6,18 +6,27 @@ interface StatusBarProps {
   onExportCode: () => void;
   isExporting: boolean;
   onShowShortcuts: () => void;
+  onToggleConsole: () => void;
+  isConsoleOpen: boolean;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onToggleConsole, isConsoleOpen }) => {
   return (
     <div className="status-bar">
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <button
-          className={`status-bar-button ${isSnippetDrawerOpen ? 'open' : ''}`}
+          className={`status-bar-button ${isSnippetDrawerOpen ? 'snippets-open active' : ''}`}
           onClick={onToggleSnippets}
           title="Snippets"
         >
           <span className="material-symbols-outlined">code_blocks</span>
+        </button>
+        <button
+          className={`status-bar-button ${isConsoleOpen ? 'active' : ''}`}
+          onClick={onToggleConsole}
+          title="Console"
+        >
+          <span className="material-symbols-outlined">terminal</span>
         </button>
         <button
           className="status-bar-button"
