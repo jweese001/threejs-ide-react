@@ -10,6 +10,7 @@ import ShortcutsModal from './components/ShortcutsModal.tsx';
 import ConsolePanel, { ConsoleMessage } from './components/ConsolePanel.tsx';
 import type * as Monaco from 'monaco-editor';
 import JSZip from 'jszip';
+import LZString from 'lz-string';
 
 interface ErrorInfo {
   message: string;
@@ -203,8 +204,24 @@ function App() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isIframeReady, setIsIframeReady] = useState(false);
 
-  // Load saved code on startup
+  // Load code from URL or localStorage on startup
   useEffect(() => {
+    // Check URL hash first
+    const hash = window.location.hash;
+    if (hash.startsWith('#code=')) {
+      try {
+        const compressed = hash.substring(6); // Remove '#code='
+        const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+        if (decompressed) {
+          setCode(decompressed);
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to load code from URL:', error);
+      }
+    }
+
+    // Fall back to localStorage
     const savedCode = localStorage.getItem('threejs-ide-code');
     if (savedCode) {
       setCode(savedCode);
@@ -343,6 +360,24 @@ function App() {
 
   const toggleSnippetDrawer = () => {
     setIsSnippetDrawerOpen(!isSnippetDrawerOpen);
+  };
+
+  const handleShareCode = () => {
+    try {
+      const compressed = LZString.compressToEncodedURIComponent(code);
+      const url = `${window.location.origin}${window.location.pathname}#code=${compressed}`;
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Share link copied to clipboard!');
+      }).catch((err) => {
+        // Fallback: show the URL in a prompt
+        prompt('Copy this link to share:', url);
+      });
+    } catch (error) {
+      console.error('Failed to create share link:', error);
+      alert('Failed to create share link. Please try again.');
+    }
   };
 
   const handleExportCode = async () => {
@@ -508,6 +543,7 @@ This scene uses Three.js v0.157.0 loaded from CDN.
         onShowShortcuts={() => setIsShortcutsOpen(true)}
         onToggleConsole={() => setIsConsoleOpen(!isConsoleOpen)}
         isConsoleOpen={isConsoleOpen}
+        onShareCode={handleShareCode}
       />
       <ShortcutsModal
         isOpen={isShortcutsOpen}

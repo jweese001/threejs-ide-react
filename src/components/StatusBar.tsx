@@ -8,9 +8,10 @@ interface StatusBarProps {
   onShowShortcuts: () => void;
   onToggleConsole: () => void;
   isConsoleOpen: boolean;
+  onShareCode: () => void;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onToggleConsole, isConsoleOpen }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onToggleConsole, isConsoleOpen, onShareCode }) => {
   return (
     <div className="status-bar">
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -27,6 +28,13 @@ const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawer
           title="Console"
         >
           <span className="material-symbols-outlined">terminal</span>
+        </button>
+        <button
+          className="status-bar-button"
+          onClick={onShareCode}
+          title="Share Code (Copy Link)"
+        >
+          <span className="material-symbols-outlined">share</span>
         </button>
         <button
           className="status-bar-button"
@@ -59,7 +67,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawer
           <span className="material-symbols-outlined">school</span>
         </a>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingRight: '8px' }}>
         <button
           className="status-bar-button"
           onClick={onShowShortcuts}
@@ -67,9 +75,6 @@ const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawer
         >
           <span className="material-symbols-outlined">help</span>
         </button>
-        <div className="shortcut-reminder-text">
-          Cmd/Ctrl+Shift+R to reset
-        </div>
       </div>
     </div>
   );
