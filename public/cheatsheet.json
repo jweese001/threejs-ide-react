@@ -1,0 +1,241 @@
+{
+  "Constructors": [
+    {
+      "category": "Materials",
+      "items": [
+        {
+          "description": "Physical (PBR)",
+          "code": "new THREE.MeshPhysicalMaterial({\n  color: 0xffffff,\n  metalness: 0.5,\n  roughness: 0.5,\n  ior: 1.5,\n  transmission: 1,\n  thickness: 0.5\n});"
+        },
+        {
+          "description": "Standard (PBR)",
+          "code": "new THREE.MeshStandardMaterial({\n  color: 0xffffff,\n  roughness: 0.5,\n  metalness: 0.5\n});"
+        },
+        {
+          "description": "Phong (Shiny)",
+          "code": "new THREE.MeshPhongMaterial({\n  color: 0x00ff00,\n  shininess: 100,\n  specular: 0x111111\n});"
+        },
+        {
+          "description": "Basic (Unlit)",
+          "code": "new THREE.MeshBasicMaterial({\n  color: 0x00ff00,\n  wireframe: true\n});"
+        },
+        {
+          "description": "Normal (Debugging)",
+          "code": "new THREE.MeshNormalMaterial();"
+        },
+        {
+          "description": "Shadow",
+          "code": "new THREE.ShadowMaterial({ opacity: 0.5 });"
+        },
+        {
+          "description": "Points",
+          "code": "new THREE.PointsMaterial({\n  color: 0xffffff,\n  size: 0.1\n});"
+        }
+      ]
+    },
+    {
+      "category": "Geometries",
+      "items": [
+        {
+          "description": "Box",
+          "code": "new THREE.BoxGeometry(1, 1, 1);"
+        },
+        {
+          "description": "Sphere",
+          "code": "new THREE.SphereGeometry(1, 32, 16);"
+        },
+        {
+          "description": "Plane",
+          "code": "new THREE.PlaneGeometry(10, 10);"
+        },
+        {
+          "description": "Cylinder",
+          "code": "new THREE.CylinderGeometry(1, 1, 2, 16);"
+        },
+        {
+          "description": "Cone",
+          "code": "new THREE.ConeGeometry(1, 2, 16);"
+        },
+        {
+          "description": "Circle",
+          "code": "new THREE.CircleGeometry(1, 32);"
+        },
+        {
+          "description": "Torus Knot",
+          "code": "new THREE.TorusKnotGeometry(1, 0.4, 100, 16);"
+        }
+      ]
+    },
+    {
+      "category": "Lights",
+      "items": [
+        {
+          "description": "Ambient Light",
+          "code": "new THREE.AmbientLight(0x404040);"
+        },
+        {
+          "description": "Directional Light",
+          "code": "new THREE.DirectionalLight(0xffffff, 1);"
+        },
+        {
+          "description": "Point Light",
+          "code": "new THREE.PointLight(0xffffff, 1, 100);"
+        },
+        {
+          "description": "Spot Light",
+          "code": "new THREE.SpotLight(0xffffff);"
+        }
+      ]
+    },
+    {
+      "category": "Cameras",
+      "items": [
+        {
+          "description": "Perspective Camera",
+          "code": "new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);"
+        },
+        {
+          "description": "Orthographic Camera",
+          "code": "new THREE.OrthographicCamera(l, r, t, b, 0.1, 1000);"
+        }
+      ]
+    }
+  ],
+  "Methods": [
+    {
+      "category": "Scene",
+      "items": [
+        {
+          "description": "Add Object",
+          "code": "scene.add(mesh);"
+        },
+        {
+          "description": "Remove Object",
+          "code": "scene.remove(mesh);"
+        },
+        {
+          "description": "Traverse Children",
+          "code": "scene.traverse((child) => {\n  if (child.isMesh) {\n    // do something...\n  }\n});"
+        }
+      ]
+    },
+    {
+      "category": "Object Transforms",
+      "items": [
+        {
+          "description": "Set Position",
+          "code": "mesh.position.set(1, 2, 3);"
+        },
+        {
+          "description": "Set Scale",
+          "code": "mesh.scale.set(1, 1, 1);"
+        },
+        {
+          "description": "Set Rotation",
+          "code": "mesh.rotation.set(0, Math.PI / 2, 0);"
+        },
+        {
+          "description": "Translate (Move)",
+          "code": "mesh.translateX(5);"
+        },
+        {
+          "description": "Rotate",
+          "code": "mesh.rotateY(Math.PI / 4);"
+        },
+        {
+          "description": "Look At",
+          "code": "mesh.lookAt(0, 0, 0);"
+        },
+        {
+          "description": "Get World Scale",
+          "code": "const scale = new THREE.Vector3();\nmesh.getWorldScale(scale);"
+        },
+        {
+          "description": "Get World Rotation",
+          "code": "const rotation = new THREE.Quaternion();\nmesh.getWorldQuaternion(rotation);"
+        },
+        {
+          "description": "Local to World",
+          "code": "const worldPos = mesh.localToWorld(new THREE.Vector3(1, 0, 0));"
+        }
+      ]
+    },
+    {
+      "category": "Loaders",
+      "items": [
+        {
+          "description": "Texture Loader",
+          "code": "const texture = new THREE.TextureLoader().load('path/to/img.jpg');"
+        },
+        {
+          "description": "GLTF Loader",
+          "code": "const loader = new GLTFLoader();\nloader.load('model.glb', (gltf) => {\n  scene.add(gltf.scene);\n});"
+        }
+      ]
+    },
+    {
+      "category": "Math Utilities",
+      "items": [
+        {
+          "description": "Degrees to Radians",
+          "code": "THREE.MathUtils.degToRad(90);"
+        },
+        {
+          "description": "Lerp",
+          "code": "THREE.MathUtils.lerp(a, b, 0.5);"
+        },
+        {
+          "description": "Random Float",
+          "code": "THREE.MathUtils.randFloat(0, 10);"
+        }
+      ]
+    }
+  ],
+  "Animation Loop": [
+    {
+      "category": "Common Animation Snippets",
+      "items": [
+        {
+          "description": "Constant Rotation",
+          "code": "mesh.rotation.y += 0.01; // Rotates around the Y-axis"
+        },
+        {
+          "description": "Update Orbit Controls",
+          "code": "controls.update(); // Required if controls.enableDamping is true"
+        },
+        {
+          "description": "Oscillate Position",
+          "code": "mesh.position.y = Math.sin(Date.now() * 0.001) * 5; // Bounces up and down"
+        },
+        {
+          "description": "Circular Camera Path",
+          "code": "camera.position.x = Math.sin(Date.now() * 0.0005) * 10;\ncamera.position.z = Math.cos(Date.now() * 0.0005) * 10;\ncamera.lookAt(0, 0, 0);"
+        },
+        {
+          "description": "Look At Moving Target",
+          "code": "mesh.lookAt(movingTarget.position); // 'movingTarget' must be defined"
+        },
+        {
+          "description": "Animate a Texture",
+          "code": "scrollingTexture.offset.x += 0.01; // 'scrollingTexture' must be defined"
+        },
+        {
+          "description": "Update a Tween",
+          "code": "TWEEN.update(); // Requires TWEEN.js library"
+        },
+        {
+          "description": "Animate Shader Uniforms",
+          "code": "shaderMaterial.uniforms.time.value = Date.now() / 1000; // 'shaderMaterial' must be defined"
+        },
+        {
+          "description": "Animate Points/Particles",
+          "code": "points.rotation.y += 0.005; // 'points' must be a THREE.Points object"
+        },
+        {
+          "description": "Conditional Animation",
+          "code": "if (modelLoaded) {\n  model.rotation.y += 0.01;\n} // 'modelLoaded' is a user-defined boolean"
+        }
+      ]
+    }
+  ]
+}

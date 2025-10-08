@@ -7,6 +7,7 @@ import Resizer from './components/Resizer.tsx';
 import StatusBar from './components/StatusBar.tsx';
 import ErrorOverlay from './components/ErrorOverlay.tsx';
 import ShortcutsModal from './components/ShortcutsModal.tsx';
+import CheatsheetModal from './components/CheatsheetModal.tsx';
 import ConsolePanel, { ConsoleMessage } from './components/ConsolePanel.tsx';
 import type * as Monaco from 'monaco-editor';
 import JSZip from 'jszip';
@@ -199,6 +200,7 @@ function App() {
   const [consoleHeight, setConsoleHeight] = useState(200);
   const [messageIdCounter, setMessageIdCounter] = useState(0);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
+  const [isCheatsheetOpen, setIsCheatsheetOpen] = useState(false);
   const editorRef = useRef<EditorRef>(null);
   const monacoEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -544,10 +546,15 @@ This scene uses Three.js v0.157.0 loaded from CDN.
         onToggleConsole={() => setIsConsoleOpen(!isConsoleOpen)}
         isConsoleOpen={isConsoleOpen}
         onShareCode={handleShareCode}
+        onShowCheatsheet={() => setIsCheatsheetOpen(true)}
       />
       <ShortcutsModal
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
+      />
+      <CheatsheetModal
+        isOpen={isCheatsheetOpen}
+        onClose={() => setIsCheatsheetOpen(false)}
       />
     </div>
   );

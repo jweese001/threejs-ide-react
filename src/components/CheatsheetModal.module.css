@@ -1,0 +1,145 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #2b2b2b;
+  color: #f1f1f1;
+  border-radius: 8px;
+  padding: 20px;
+  z-index: 1001;
+  width: max-content;
+  max-width: 95vw;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #f1f1f1;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background-color: #444;
+  border-radius: 4px;
+}
+
+.content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.categoryTitle {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #aaa;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 5px;
+}
+
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shortcutRow {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: 30px;
+  align-items: center;
+  background-color: #333;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.description {
+  font-size: 1rem;
+  font-style: italic;
+  color: #aaa;
+  padding-right: 20px;
+}
+
+.codeContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.code {
+  font-family: 'Fira Code', monospace;
+  background-color: #222;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.copyButton {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.copyButton:hover {
+  background-color: #444;
+  color: #fff;
+}
+
+.code pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.topLevelSection {
+  margin-bottom: 30px;
+}
+
+.topLevelTitle {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #555;
+  padding-bottom: 10px;
+}

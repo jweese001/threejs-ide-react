@@ -6,12 +6,13 @@ interface StatusBarProps {
   onExportCode: () => void;
   isExporting: boolean;
   onShowShortcuts: () => void;
+  onShowCheatsheet: () => void;
   onToggleConsole: () => void;
   isConsoleOpen: boolean;
   onShareCode: () => void;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onToggleConsole, isConsoleOpen, onShareCode }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onShowCheatsheet, onToggleConsole, isConsoleOpen, onShareCode }) => {
   return (
     <div className="status-bar">
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -68,6 +69,13 @@ const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawer
         </a>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingRight: '8px' }}>
+        <button
+          className="status-bar-button"
+          onClick={onShowCheatsheet}
+          title="Three.js Cheatsheet"
+        >
+          <span className="material-symbols-outlined">lightbulb</span>
+        </button>
         <button
           className="status-bar-button"
           onClick={onShowShortcuts}
