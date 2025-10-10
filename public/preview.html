@@ -38,11 +38,33 @@
             const originalWarn = console.warn;
             const originalError = console.error;
 
+            // Serialize arguments for postMessage (handles Error objects, etc.)
+            function serializeArgs(args) {
+                return args.map(arg => {
+                    if (arg instanceof Error) {
+                        return {
+                            __isError: true,
+                            name: arg.name,
+                            message: arg.message,
+                            stack: arg.stack
+                        };
+                    } else if (typeof arg === 'object' && arg !== null) {
+                        try {
+                            // Try to stringify, fallback to toString
+                            return JSON.parse(JSON.stringify(arg));
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }
+                    return arg;
+                });
+            }
+
             console.log = function(...args) {
                 originalLog.apply(console, args);
                 window.parent.postMessage({
                     type: 'console',
-                    payload: { level: 'log', args: args }
+                    payload: { level: 'log', args: serializeArgs(args) }
                 }, window.location.origin);
             };
 
@@ -50,7 +72,7 @@
                 originalWarn.apply(console, args);
                 window.parent.postMessage({
                     type: 'console',
-                    payload: { level: 'warn', args: args }
+                    payload: { level: 'warn', args: serializeArgs(args) }
                 }, window.location.origin);
             };
 
@@ -58,7 +80,7 @@
                 originalError.apply(console, args);
                 window.parent.postMessage({
                     type: 'console',
-                    payload: { level: 'error', args: args }
+                    payload: { level: 'error', args: serializeArgs(args) }
                 }, window.location.origin);
             };
         })();

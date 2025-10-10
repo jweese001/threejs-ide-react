@@ -263,7 +263,21 @@ function App() {
       } else if (type === 'console') {
         // Handle console messages from iframe
         const { level, args } = payload as { level: 'log' | 'warn' | 'error'; args: any[] };
-        const message = args.map(arg => String(arg)).join(' ');
+
+        // Format arguments, handling serialized Error objects
+        const message = args.map(arg => {
+          if (arg && typeof arg === 'object' && arg.__isError) {
+            // Format error object nicely
+            return `${arg.name}: ${arg.message}${arg.stack ? '\n' + arg.stack : ''}`;
+          } else if (typeof arg === 'object' && arg !== null) {
+            try {
+              return JSON.stringify(arg, null, 2);
+            } catch (e) {
+              return String(arg);
+            }
+          }
+          return String(arg);
+        }).join(' ');
 
         // Ignore common noise messages
         const shouldIgnore = CONSOLE_IGNORE_PATTERNS.some(pattern => pattern.test(message));
