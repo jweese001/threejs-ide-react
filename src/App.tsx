@@ -201,6 +201,7 @@ function App() {
   const [messageIdCounter, setMessageIdCounter] = useState(0);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isCheatsheetOpen, setIsCheatsheetOpen] = useState(false);
+  const [isConsoleDragging, setIsConsoleDragging] = useState(false);
   const editorRef = useRef<EditorRef>(null);
   const monacoEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -316,9 +317,9 @@ function App() {
     setConsoleMessages([]);
   };
 
-  const handleConsoleResize = (newHeight: number) => {
+  const handleConsoleResize = useCallback((newHeight: number) => {
     setConsoleHeight(newHeight);
-  };
+  }, []);
 
   const handleEditorMount = (editor: Monaco.editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
     monacoEditorRef.current = editor;
@@ -539,7 +540,7 @@ This scene uses Three.js v0.157.0 loaded from CDN.
         />
 
         <div id="preview-container">
-          <Preview ref={iframeRef} isDragging={isDragging} />
+          <Preview ref={iframeRef} isDragging={isDragging || isConsoleDragging} />
           <ErrorOverlay error={error} onClose={() => setError(null)} />
         </div>
       </div>
@@ -549,6 +550,8 @@ This scene uses Three.js v0.157.0 loaded from CDN.
           onClear={handleClearConsole}
           height={consoleHeight}
           onResize={handleConsoleResize}
+          isDragging={isConsoleDragging}
+          setIsDragging={setIsConsoleDragging}
         />
       )}
       <StatusBar

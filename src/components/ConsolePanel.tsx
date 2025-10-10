@@ -14,20 +14,20 @@ interface ConsolePanelProps {
   onClear: () => void;
   height: number;
   onResize: (newHeight: number) => void;
+  isDragging: boolean;
+  setIsDragging: (isDragging: boolean) => void;
 }
 
-const ConsolePanel: React.FC<ConsolePanelProps> = ({ messages, onClear, height, onResize }) => {
+const ConsolePanel: React.FC<ConsolePanelProps> = ({ messages, onClear, height, onResize, isDragging, setIsDragging }) => {
   const [filters, setFilters] = useState({
     log: true,
     warn: true,
     error: true,
   });
-  const [isDragging, setIsDragging] = useState(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+  // Use effect to handle drag cleanup properly
+  useEffect(() => {
+    if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       e.preventDefault();
@@ -40,16 +40,26 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ messages, onClear, height, 
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
+
+    // Cleanup function - always runs when effect re-runs or component unmounts
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging, onResize, setIsDragging]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
   };
 
   const toggleFilter = (type: 'log' | 'warn' | 'error') => {
