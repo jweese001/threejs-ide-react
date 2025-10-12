@@ -29,6 +29,10 @@ analyze-app.js
 comprehensive-analysis.js
 test-*.spec.js
 
+# Temporary files and directories
+Temp/
+3js-ide-overview.html
+
 # Build output
 dist/
 build/
