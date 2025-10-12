@@ -26,56 +26,94 @@ interface MessageData {
   code?: string;
 }
 
-const defaultCode = `// A fairly random example scene
-import * as THREE from 'three';
+const defaultCode = `import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-// Set up the scene, camera, and renderer
-let camera, scene, renderer;
-let controls;
+
+let camera, scene, renderer, controls;
+const clouds = [];
 let loadedModel;
 let torus, torus2, torus3, torus4;
 let toriToAnimate = []; // Declare the array here
+let centralGroup;
+
+let isPulsing = false;
+const minScale = new THREE.Vector3(1, 1, 1);
+const maxScale = new THREE.Vector3(1.02, 1.02, 1.02);
+let targetScale = maxScale.clone();
 
 function init() {
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    // Create the WebGL renderer
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(60, w / h, 1, 2000);
     renderer = new THREE.WebGLRenderer({ antialias: true });
+
+    //camera.position.x = 1;
+    //camera.position.y = 3;
+    camera.position.z = 6;
+    //camera.rotation.x = 6;
     renderer.setSize(w, h);
+    scene.background = new THREE.Color(0x070C30);
+
     document.body.appendChild(renderer.domElement);
     document.body.style.margin = '0';
     document.body.style.overflow = 'hidden';
 
-    // Set up the camera
-    const fov = 60;
-    const aspect = w / h;
-    const near = 0.1;
-    const far = 100;
-    camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.position.set( 4.5, 1, -0.5 );
+    centralGroup = new THREE.Group();
+    centralGroup.position.y = -1;
+    centralGroup.rotation.x = 0.8
 
-    // Create the scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x34c0eb); //light blue
+    scene.add(centralGroup);
 
-    // Add OrbitControls
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.03;
-    controls.target.set(0, 1, 0);
+    // --- NEBULA BACKGROUND --- //
+    const nebulaGroup = new THREE.Group();
+    nebulaGroup.position.x = 500; // Move the whole group 500 units to the right
+    scene.add(nebulaGroup);
 
-    // Add lights
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
+    const loader = new THREE.TextureLoader();
+    loader.load(
+        "/images/smoke3.png",
+        function(texture) {
+            console.log('Texture loaded! Creating nebula...');
+            const cloudGeometry = new THREE.PlaneGeometry(500, 500);
+            const colors = [0x8844ff, 0xff4488, 0x4488ff, 0xff8844];
 
-    const dirLight = new THREE.DirectionalLight(0xffffff);
-    dirLight.position.set(3, 10, 10);
-    scene.add(dirLight);
+            for (let p = 0; p < 160; p++) {
+                const cloudMaterial = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true,
+                    opacity: 0.6,
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide,
+                    color: colors[p % colors.length],
+                    depthWrite: false
+                });
 
+                let cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+                cloud.position.set(
+                    (Math.random() - 0.7) * 2000,
+                    (Math.random() - 0.8) * 400,
+                    Math.random() * -800 - 200
+                );
+                cloud.rotation.z = Math.random() * 2 * Math.PI;
+                nebulaGroup.add(cloud);
+                clouds.push(cloud);
+            }
+            console.log('Added', clouds.length, 'nebula clouds');
+        },
+        undefined,
+        function(error) {
+            console.error('Texture load error:', error);
+        }
+    );
+    // --- END OF NEBULA BACKGROUND --- //
+
+
+    //
+    // --- ADD FOREGROUND OBJECTS HERE ---
     // Make Torus
     const geometry = new THREE.TorusGeometry(2.16, 0.024, 8, 64);
     const material = new THREE.MeshBasicMaterial({ 
@@ -100,15 +138,14 @@ function init() {
     torus4.rotation.x = Math.PI / -4;
 
     //Add all tori to the scene
-    scene.add( torus, torus2, torus3, torus4 );
+    centralGroup.add( torus, torus2, torus3, torus4 );
     
     // 2. Add them to the animation array
     toriToAnimate.push(torus, torus2, torus3, torus4);
 
-
     // Load the .obj model
-    const loader = new OBJLoader();
-    loader.load(
+    const objLoader = new OBJLoader();
+    objLoader.load(
         '/models/spiked.obj',
         function ( object ) {
             
@@ -133,7 +170,7 @@ function init() {
             });
             
             object.position.y = -0.5;
-            scene.add( object );
+            centralGroup.add( object );
 
             loadedModel = object; //Assign the loaded object to variable
         },
@@ -143,7 +180,51 @@ function init() {
         function ( error ) {
             console.error( 'An error happened loading the .obj model', error );
         }
-    );
+    ) // --- END OF NEBULA BACKGROUND --- 
+
+    // Creates a starfield as a THREE.Points object
+        function getStarfield({ numStars = 1000, textureURL = '/images/whiteDot32.png' } = {}) {
+            function randomSpherePoint() {
+                const radius = Math.random() * 25 + 25;
+                const u = Math.random();
+                const v = Math.random();
+                const theta = 2 * Math.PI * u;
+                const phi = Math.acos(2 * v - 1);
+            let x = radius * Math.sin(phi) * Math.cos(theta);
+            let y = radius * Math.sin(phi) * Math.sin(theta);
+            let z = radius * Math.cos(phi);
+        return new THREE.Vector3(x, y, z);
+        }
+        const verts = [];
+        for (let i = 0; i < numStars; i += 1) {
+            verts.push(...randomSpherePoint().toArray());
+        }
+        const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+        const mat = new THREE.PointsMaterial({
+            size: 0.2,
+            map: new THREE.TextureLoader().load(textureURL),
+            transparent: true
+        });
+        const points = new THREE.Points(geo, mat);
+            return points;
+    }
+    scene.add(getStarfield());
+
+    // --- GENERAL SCENE SETUP ---
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.03;
+
+    window.addEventListener('keydown', (event) => {
+        if (event.code === 'KeyP') { // Let's use the 'P' key
+            isPulsing = !isPulsing;
+            // Reset to min scale when stopping the pulse
+            if (!isPulsing) {
+                targetScale.copy(minScale);
+            }
+        }
+    });
 
     window.addEventListener('resize', handleResize);
     animate();
@@ -152,7 +233,6 @@ function init() {
 function handleResize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-
     if(camera && renderer) {
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
@@ -164,15 +244,39 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
+    // Animate nebula clouds
+    for (const cloud of clouds) {
+        cloud.rotation.z -= 0.0005;
+    }
+
     // Check if the model has been loaded before trying to animate it
     if (loadedModel) {
         loadedModel.rotation.y += -0.004;
+        centralGroup.rotation.y += -0.001;
+
+        if (isPulsing) {
+            // Move the scale a little bit towards the target on each frame
+            loadedModel.scale.lerp(targetScale, 0.5);
+
+            // If we're close enough to the target, switch the target
+            if (loadedModel.scale.distanceTo(targetScale) < 0.01) {
+                if (targetScale.equals(maxScale)) {
+                    targetScale.copy(minScale);
+                } else {
+                    targetScale.copy(maxScale);
+                }
+            }
+        } else {
+            // If not pulsing, smoothly return to the minimum scale
+            loadedModel.scale.lerp(minScale, 0.05);
+        }
     }
 
     for (const torus of toriToAnimate) {
         torus.rotation.x += -0.005;
         torus.rotation.z += -0.5;
     };
+
 
     renderer.render(scene, camera);
 }
