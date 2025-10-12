@@ -18,7 +18,8 @@
         { "name": "Solar System", "file": "examples/solar-system.js" },
         { "name": "Spinning Red Cube", "file": "examples/spinning-red-cube.js" },
         { "name": "Particles and Points", "file": "examples/particles-points.js" },
-        { "name": "Dusty Scene", "file": "examples/dusty.js" }
+        { "name": "Dusty Scene", "file": "examples/dusty.js" },
+        { "name": "Nebula Scene", "file": "examples/nebula-scene.js" }
       ]
     },
     {
