@@ -39,9 +39,12 @@ export function generateImportmap(
     Object.assign(imports, BASE_IMPORTMAP.imports);
   }
 
+  // Get set of base import keys for quick lookup
+  const baseKeys = new Set(Object.keys(BASE_IMPORTMAP.imports));
+
   // Add resolved imports
   for (const resolvedImport of resolved) {
-    // Skip if using existing importmap
+    // Skip if using existing importmap (bundled packages)
     if (resolvedImport.url === '<use-existing-importmap>') {
       continue;
     }
@@ -52,11 +55,20 @@ export function generateImportmap(
       continue;
     }
 
-    // Use originalSource as the key (maintains path structure)
-    const key = resolvedImport.originalSource;
+    // Use normalized packageName as the key (e.g., 'three', 'gsap', 'three/addons/controls/OrbitControls.js')
+    const key = resolvedImport.packageName;
 
-    // Only add if not already in base imports (avoid duplicates)
-    if (!imports[key]) {
+    // Skip if already in base imports (avoid conflicts)
+    // Also check if the key starts with a base key (e.g., 'three/addons/')
+    const isDuplicate = baseKeys.has(key) || Array.from(baseKeys).some(baseKey => {
+      // Check if base key ends with '/' (like 'three/addons/')
+      if (baseKey.endsWith('/')) {
+        return key.startsWith(baseKey);
+      }
+      return false;
+    });
+
+    if (!isDuplicate) {
       imports[key] = resolvedImport.url;
     }
   }

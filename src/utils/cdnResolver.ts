@@ -46,9 +46,9 @@ export async function resolveCDN(
   const packageName = normalizePackageName(importStmt.source);
 
   // Handle Three.js specially - use IDE's bundled version
-  if (packageName === 'three' || importStmt.source.startsWith('three/')) {
+  if (packageName === 'three' || packageName.startsWith('three/')) {
     return {
-      packageName: importStmt.source,
+      packageName: packageName,  // Use normalized package name, not original source
       url: '<use-existing-importmap>',
       version: '0.157.0',
       cdn: 'jsdelivr',

@@ -365,8 +365,8 @@ function App() {
             console.warn('⚠️ Version warnings:', warnings.join('\n'));
           }
 
-          // Generate importmap
-          const importmap = generateImportmap(resolved);
+          // Generate importmap (exclude base imports - they're already in preview.html)
+          const importmap = generateImportmap(resolved, false);
           const importmapJSON = importmapToJSON(importmap);
 
           console.log(getResolutionSummary(resolved));

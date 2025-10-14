@@ -140,13 +140,28 @@ function removeComments(code: string): string {
  * Normalize package name from various formats
  * e.g., 'three/addons/controls/OrbitControls.js' -> 'three/addons/controls/OrbitControls.js'
  * e.g., 'https://cdn.skypack.dev/three@0.136.0' -> 'three'
+ * e.g., 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls' -> 'three/addons/controls/OrbitControls.js'
  */
 export function normalizePackageName(source: string): string {
   if (!source.startsWith('http://') && !source.startsWith('https://')) {
     return source; // Already a package name
   }
 
-  // Extract package name from URL
+  // Special handling for Three.js URLs with paths
+  if (source.includes('three') && source.includes('/examples/jsm/')) {
+    // Extract the path after /examples/jsm/ and convert to addons format
+    const match = source.match(/\/examples\/jsm\/(.+)/);
+    if (match) {
+      let addonPath = match[1];
+      // Remove .js extension if present
+      if (!addonPath.endsWith('.js')) {
+        addonPath += '.js';
+      }
+      return `three/addons/${addonPath}`;
+    }
+  }
+
+  // Extract base package name from URL (before @ or /)
   const urlPatterns = [
     /cdn\.skypack\.dev\/(@?[^@/]+)/,
     /unpkg\.com\/(@?[^@/]+)/,
@@ -162,11 +177,12 @@ export function normalizePackageName(source: string): string {
   }
 
   // Fallback: try to extract anything after last domain segment
-  const lastSlash = source.lastIndexOf('/');
-  if (lastSlash !== -1) {
-    const potential = source.substring(lastSlash + 1);
-    // Remove version and file extension
-    return potential.split('@')[0].split('.js')[0];
+  const urlObj = new URL(source);
+  const pathParts = urlObj.pathname.split('/').filter(p => p);
+  if (pathParts.length > 0) {
+    // Get first path segment and remove version
+    const pkgName = pathParts[0].split('@')[0];
+    return pkgName;
   }
 
   return source;
@@ -178,8 +194,8 @@ export function normalizePackageName(source: string): string {
 export function getImportSummary(imports: ImportStatement[]): string {
   const packages = imports.map(imp => {
     const pkg = normalizePackageName(imp.source);
-    const version = imp.version ? `@${imp.version}` : '';
-    return `${pkg}${version}`;
+    // Don't append version here - version will be shown after resolution
+    return pkg;
   });
 
   return packages.join(', ');
