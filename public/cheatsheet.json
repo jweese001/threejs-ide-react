@@ -274,8 +274,8 @@
           "code": "// ❌ three.js.org pattern:\nloader.load('models/gltf/LittlestTokyo.glb', ...);\n\n// ✅ IDE-compatible (if you have the file):\nloader.load('/models/LittlestTokyo.glb', ...);\n\n// Note: You need to add the model file to public/models/"
         },
         {
-          "description": "DRACO Decoder Path: three.js.org uses 'jsm/libs/draco/'. Skip this or use CDN.",
-          "code": "// ❌ three.js.org pattern:\ndracoLoader.setDecoderPath('jsm/libs/draco/gltf/');\n\n// ✅ Option 1: Use CDN\ndracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');\n\n// ✅ Option 2: Skip if not using compressed models\n// Just remove the DRACOLoader setup entirely"
+          "description": "DRACO Decoder Path: three.js.org uses 'jsm/libs/draco/'. Use CDN instead - fully supported!",
+          "code": "// ❌ three.js.org pattern:\ndracoLoader.setDecoderPath('jsm/libs/draco/gltf/');\n\n// ✅ Use Google's CDN (recommended):\ndracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');\n\n// DRACO-compressed models now work perfectly in our IDE!\n// WebAssembly and blob textures are fully supported."
         },
         {
           "description": "Window Resize: Official examples use window.onresize. Better to use addEventListener for compatibility.",
