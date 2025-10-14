@@ -19,6 +19,7 @@
         { "name": "Spinning Red Cube", "file": "examples/spinning-red-cube.js" },
         { "name": "Particles and Points", "file": "examples/particles-points.js" },
         { "name": "Dusty Scene", "file": "examples/dusty.js" },
+        { "name": "Galaxy Particle System", "file": "examples/galaxy.js" },
         { "name": "Nebula Scene", "file": "examples/nebula-scene.js" }
       ]
     },

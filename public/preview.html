@@ -16,13 +16,15 @@
         // Set the base href
         document.querySelector('base').href = window.BASE_PATH;
     </script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https:;">
     <title>Preview</title>
     <script type="importmap">
     {
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/",
+            "gsap": "https://cdn.skypack.dev/gsap",
+            "lil-gui": "https://cdn.skypack.dev/lil-gui"
         }
     }
     </script>
