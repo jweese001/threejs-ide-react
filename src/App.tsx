@@ -14,7 +14,7 @@ import JSZip from 'jszip';
 import LZString from 'lz-string';
 import { parseImports, getImportSummary } from './utils/importParser';
 import { resolveImports, checkVersionConflicts, getResolutionSummary } from './utils/cdnResolver';
-import { generateImportmap, importmapToJSON } from './utils/importmapGenerator';
+import { generateImportmap, importmapToJSON, getUserImports } from './utils/importmapGenerator';
 
 interface ErrorInfo {
   message: string;
@@ -354,22 +354,27 @@ function App() {
         const imports = parseImports(code);
 
         if (imports.length > 0) {
-          console.log(`📦 Detected ${imports.length} import(s):`, getImportSummary(imports));
-
           // Resolve imports to CDN URLs
           const resolved = await resolveImports(imports);
+
+          // Generate importmap (exclude base imports - they're already in preview.html)
+          const importmap = generateImportmap(resolved, false);
+
+          // Get external packages (not in base importmap)
+          const externalPackages = getUserImports(importmap);
+          const externalCount = Object.keys(externalPackages).length;
+
+          // Only log if external packages were loaded
+          if (externalCount > 0) {
+            const packageList = Object.keys(externalPackages).join(', ');
+            console.log(`✨ Loaded external package${externalCount > 1 ? 's' : ''}: ${packageList}`);
+          }
 
           // Check for version conflicts
           const warnings = checkVersionConflicts(resolved);
           if (warnings.length > 0) {
-            console.warn('⚠️ Version warnings:', warnings.join('\n'));
+            console.warn('⚠️  Version warnings:', warnings.join('\n'));
           }
-
-          // Generate importmap (exclude base imports - they're already in preview.html)
-          const importmap = generateImportmap(resolved, false);
-          const importmapJSON = importmapToJSON(importmap);
-
-          console.log(getResolutionSummary(resolved));
 
           // Send both code and importmap to iframe
           iframeRef.current.contentWindow.postMessage(
