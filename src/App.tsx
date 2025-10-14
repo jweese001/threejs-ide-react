@@ -12,6 +12,9 @@ import ConsolePanel, { ConsoleMessage } from './components/ConsolePanel.tsx';
 import type * as Monaco from 'monaco-editor';
 import JSZip from 'jszip';
 import LZString from 'lz-string';
+import { parseImports, getImportSummary } from './utils/importParser';
+import { resolveImports, checkVersionConflicts, getResolutionSummary } from './utils/cdnResolver';
+import { generateImportmap, importmapToJSON } from './utils/importmapGenerator';
 
 interface ErrorInfo {
   message: string;
@@ -344,12 +347,54 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [code]);
 
-  const runCode = useCallback(() => {
+  const runCode = useCallback(async () => {
     if (iframeRef.current && isIframeReady) {
-      iframeRef.current.contentWindow.postMessage(
-        { type: 'executeCode', code },
-        window.location.origin
-      );
+      try {
+        // Parse imports from code
+        const imports = parseImports(code);
+
+        if (imports.length > 0) {
+          console.log(`📦 Detected ${imports.length} import(s):`, getImportSummary(imports));
+
+          // Resolve imports to CDN URLs
+          const resolved = await resolveImports(imports);
+
+          // Check for version conflicts
+          const warnings = checkVersionConflicts(resolved);
+          if (warnings.length > 0) {
+            console.warn('⚠️ Version warnings:', warnings.join('\n'));
+          }
+
+          // Generate importmap
+          const importmap = generateImportmap(resolved);
+          const importmapJSON = importmapToJSON(importmap);
+
+          console.log(getResolutionSummary(resolved));
+
+          // Send both code and importmap to iframe
+          iframeRef.current.contentWindow.postMessage(
+            {
+              type: 'executeCode',
+              code,
+              importmap,
+            },
+            window.location.origin
+          );
+        } else {
+          // No imports detected, send code only
+          iframeRef.current.contentWindow.postMessage(
+            { type: 'executeCode', code },
+            window.location.origin
+          );
+        }
+      } catch (error) {
+        console.error('Failed to resolve imports:', error);
+        // Fallback: send code without import resolution
+        iframeRef.current.contentWindow.postMessage(
+          { type: 'executeCode', code },
+          window.location.origin
+        );
+      }
     }
   }, [code, isIframeReady]);
 

@@ -87,6 +87,33 @@
             };
         })();
 
+        /**
+         * Update or inject dynamic importmap
+         */
+        function updateImportmap(newImportmap) {
+            // Remove old dynamic importmap if it exists
+            const oldDynamicMap = document.querySelector('script[type="importmap"]#dynamic-importmap');
+            if (oldDynamicMap) {
+                oldDynamicMap.remove();
+            }
+
+            // Create new dynamic importmap
+            const script = document.createElement('script');
+            script.type = 'importmap';
+            script.id = 'dynamic-importmap';
+            script.textContent = JSON.stringify(newImportmap);
+
+            // Insert before the first script in head (after static importmap)
+            const firstScript = document.head.querySelector('script');
+            if (firstScript) {
+                document.head.insertBefore(script, firstScript.nextSibling);
+            } else {
+                document.head.appendChild(script);
+            }
+
+            console.log('📦 Dynamic importmap updated:', newImportmap);
+        }
+
         window.addEventListener('message', (event) => {
             // IMPORTANT: Check the origin of the message for security
             if (event.origin !== window.location.origin) {
@@ -94,9 +121,14 @@
                 return;
             }
 
-            const { type, code } = event.data;
+            const { type, code, importmap } = event.data;
 
             if (type === 'executeCode') {
+                // Inject dynamic importmap if provided
+                if (importmap) {
+                    updateImportmap(importmap);
+                }
+
                 // Prepend base path to asset URLs in the code
                 let modifiedCode = code;
                 if (window.BASE_PATH && window.BASE_PATH !== '/') {
@@ -128,7 +160,7 @@
                 script.id = 'user-script';
                 script.type = 'module';
                 script.src = url;
-                
+
                 // 3. Handle errors
                 script.onerror = (error) => {
                     // This will catch syntax errors in the module itself

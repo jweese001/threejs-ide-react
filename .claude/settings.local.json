@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nPhase 1: External code compatibility - Quick wins\n\nEnable paste-and-play for external Three.js code with minimal conversion.\n\nChanges:\n- Expand CSP whitelist to allow Skypack, unpkg, esm.sh CDNs\n- Add gsap and lil-gui to static importmap\n- Create Galaxy Particle System snippet (150k particles)\n- Fix shader constants (PI, PI2) for external code\n- Add galaxy example to snippet manifest\n\nFeatures:\n- Galaxy snippet demonstrates advanced particle systems\n- Shader animation with custom uniforms\n- OrbitControls for interactive viewing\n- Orange-to-purple color gradient\n\nImpact:\n- Users can now import code from CodePen/tutorials\n- Lower barrier to entry for external examples\n- Foundation for Phase 2 dynamic import resolution\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
