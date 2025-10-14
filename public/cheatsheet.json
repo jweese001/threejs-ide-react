@@ -237,5 +237,56 @@
         }
       ]
     }
+  ],
+  "Debugging": [
+    {
+      "category": "Debugging Helpers",
+      "items": [
+        {
+          "description": "Bounding Box Helper: Visualizes an object's bounding box. Useful for checking size and position. (Also in Snippet Drawer)",
+          "code": "function addBoundingBox(scene, object) {\n  const boxHelper = new THREE.BoxHelper(object, 0xffff00);\n  scene.add(boxHelper);\n}\n\n// Usage: addBoundingBox(scene, myObject);"
+        }
+      ]
+    }
+  ],
+  "Adapting External Code": [
+    {
+      "category": "Common Patterns from three.js.org Examples",
+      "items": [
+        {
+          "description": "Container Element: Official examples use document.getElementById('container'). Our IDE needs document.body instead.",
+          "code": "// ❌ three.js.org pattern:\nconst container = document.getElementById('container');\ncontainer.appendChild(renderer.domElement);\n\n// ✅ IDE-compatible:\ndocument.body.appendChild(renderer.domElement);"
+        },
+        {
+          "description": "Stats Panel: Replace container references with document.body",
+          "code": "// ❌ three.js.org pattern:\nconst stats = new Stats();\ncontainer.appendChild(stats.dom);\n\n// ✅ IDE-compatible:\nconst stats = new Stats();\ndocument.body.appendChild(stats.dom);"
+        },
+        {
+          "description": "Asset Paths: Use /models/ or /images/ folders. Upload assets via your file system.",
+          "code": "// ❌ three.js.org pattern:\nloader.load('models/gltf/LittlestTokyo.glb', ...);\n\n// ✅ IDE-compatible (if you have the file):\nloader.load('/models/LittlestTokyo.glb', ...);\n\n// Note: You need to add the model file to public/models/"
+        },
+        {
+          "description": "DRACO Decoder Path: three.js.org uses 'jsm/libs/draco/'. Skip this or use CDN.",
+          "code": "// ❌ three.js.org pattern:\ndracoLoader.setDecoderPath('jsm/libs/draco/gltf/');\n\n// ✅ Option 1: Use CDN\ndracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');\n\n// ✅ Option 2: Skip if not using compressed models\n// Just remove the DRACOLoader setup entirely"
+        },
+        {
+          "description": "Window Resize: Official examples use window.onresize. Better to use addEventListener for compatibility.",
+          "code": "// ❌ three.js.org pattern:\nwindow.onresize = function() {\n  camera.aspect = window.innerWidth / window.innerHeight;\n  camera.updateProjectionMatrix();\n  renderer.setSize(window.innerWidth, window.innerHeight);\n};\n\n// ✅ Better pattern:\nwindow.addEventListener('resize', () => {\n  camera.aspect = window.innerWidth / window.innerHeight;\n  camera.updateProjectionMatrix();\n  renderer.setSize(window.innerWidth, window.innerHeight);\n});"
+        },
+        {
+          "description": "Import Statements: External Skypack/unpkg URLs work automatically! Our IDE converts them to bundled packages.",
+          "code": "// ✅ All of these work in our IDE:\nimport * as THREE from 'three';\nimport * as THREE from 'https://cdn.skypack.dev/three@0.136.0';\nimport { OrbitControls } from 'three/addons/controls/OrbitControls.js';\nimport { OrbitControls } from 'https://unpkg.com/three@0.136.0/examples/jsm/controls/OrbitControls.js';\n\n// The IDE automatically resolves all variants to the correct bundled version!"
+        }
+      ]
+    },
+    {
+      "category": "Shader Constants",
+      "items": [
+        {
+          "description": "Missing PI Constants: Some examples use PI or PI2 in shaders. Add these constants if you see 'undefined' errors.",
+          "code": "// Add to your vertex or fragment shader:\nconst float PI = 3.14159265359;\nconst float PI2 = 6.28318530718;\n\n// Then use them:\nfloat angle = PI * 0.5;\nfloat fullCircle = PI2;"
+        }
+      ]
+    }
   ]
 }
