@@ -12,6 +12,9 @@ import ConsolePanel, { ConsoleMessage } from './components/ConsolePanel.tsx';
 import type * as Monaco from 'monaco-editor';
 import JSZip from 'jszip';
 import LZString from 'lz-string';
+import { parseImports, getImportSummary } from './utils/importParser';
+import { resolveImports, checkVersionConflicts, getResolutionSummary } from './utils/cdnResolver';
+import { generateImportmap, importmapToJSON, getUserImports } from './utils/importmapGenerator';
 
 interface ErrorInfo {
   message: string;
@@ -344,12 +347,59 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [code]);
 
-  const runCode = useCallback(() => {
+  const runCode = useCallback(async () => {
     if (iframeRef.current && isIframeReady) {
-      iframeRef.current.contentWindow.postMessage(
-        { type: 'executeCode', code },
-        window.location.origin
-      );
+      try {
+        // Parse imports from code
+        const imports = parseImports(code);
+
+        if (imports.length > 0) {
+          // Resolve imports to CDN URLs
+          const resolved = await resolveImports(imports);
+
+          // Generate importmap (exclude base imports - they're already in preview.html)
+          const importmap = generateImportmap(resolved, false);
+
+          // Get external packages (not in base importmap)
+          const externalPackages = getUserImports(importmap);
+          const externalCount = Object.keys(externalPackages).length;
+
+          // Only log if external packages were loaded
+          if (externalCount > 0) {
+            const packageList = Object.keys(externalPackages).join(', ');
+            console.log(`✨ Loaded external package${externalCount > 1 ? 's' : ''}: ${packageList}`);
+          }
+
+          // Check for version conflicts
+          const warnings = checkVersionConflicts(resolved);
+          if (warnings.length > 0) {
+            console.warn('⚠️  Version warnings:', warnings.join('\n'));
+          }
+
+          // Send both code and importmap to iframe
+          iframeRef.current.contentWindow.postMessage(
+            {
+              type: 'executeCode',
+              code,
+              importmap,
+            },
+            window.location.origin
+          );
+        } else {
+          // No imports detected, send code only
+          iframeRef.current.contentWindow.postMessage(
+            { type: 'executeCode', code },
+            window.location.origin
+          );
+        }
+      } catch (error) {
+        console.error('Failed to resolve imports:', error);
+        // Fallback: send code without import resolution
+        iframeRef.current.contentWindow.postMessage(
+          { type: 'executeCode', code },
+          window.location.origin
+        );
+      }
     }
   }, [code, isIframeReady]);
 

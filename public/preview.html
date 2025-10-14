@@ -16,13 +16,15 @@
         // Set the base href
         document.querySelector('base').href = window.BASE_PATH;
     </script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https:;">
     <title>Preview</title>
     <script type="importmap">
     {
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/",
+            "gsap": "https://cdn.skypack.dev/gsap",
+            "lil-gui": "https://cdn.skypack.dev/lil-gui"
         }
     }
     </script>
@@ -85,6 +87,37 @@
             };
         })();
 
+        /**
+         * Update or inject dynamic importmap
+         */
+        function updateImportmap(newImportmap) {
+            // Remove old dynamic importmap if it exists
+            const oldDynamicMap = document.querySelector('script[type="importmap"]#dynamic-importmap');
+            if (oldDynamicMap) {
+                oldDynamicMap.remove();
+            }
+
+            // Create new dynamic importmap
+            const script = document.createElement('script');
+            script.type = 'importmap';
+            script.id = 'dynamic-importmap';
+            script.textContent = JSON.stringify(newImportmap);
+
+            // Insert before the first script in head (after static importmap)
+            const firstScript = document.head.querySelector('script');
+            if (firstScript) {
+                document.head.insertBefore(script, firstScript.nextSibling);
+            } else {
+                document.head.appendChild(script);
+            }
+
+            // Only log if there are actual external packages
+            const hasExternalPackages = Object.keys(newImportmap.imports || {}).length > 0;
+            if (hasExternalPackages) {
+                console.log('📦 Dynamic importmap updated:', newImportmap);
+            }
+        }
+
         window.addEventListener('message', (event) => {
             // IMPORTANT: Check the origin of the message for security
             if (event.origin !== window.location.origin) {
@@ -92,9 +125,14 @@
                 return;
             }
 
-            const { type, code } = event.data;
+            const { type, code, importmap } = event.data;
 
             if (type === 'executeCode') {
+                // Inject dynamic importmap if provided
+                if (importmap) {
+                    updateImportmap(importmap);
+                }
+
                 // Prepend base path to asset URLs in the code
                 let modifiedCode = code;
                 if (window.BASE_PATH && window.BASE_PATH !== '/') {
@@ -126,7 +164,7 @@
                 script.id = 'user-script';
                 script.type = 'module';
                 script.src = url;
-                
+
                 // 3. Handle errors
                 script.onerror = (error) => {
                     // This will catch syntax errors in the module itself
