@@ -245,6 +245,14 @@
         {
           "description": "Bounding Box Helper: Visualizes an object's bounding box. Useful for checking size and position. (Also in Snippet Drawer)",
           "code": "function addBoundingBox(scene, object) {\n  const boxHelper = new THREE.BoxHelper(object, 0xffff00);\n  scene.add(boxHelper);\n}\n\n// Usage: addBoundingBox(scene, myObject);"
+        },
+        {
+          "description": "Vertex Normals Helper: Shows the vertex normals on a mesh. Essential for debugging lighting. (Also in Snippet Drawer)",
+          "code": "function visualizeNormals(scene, object) {\n  const normalsHelper = new THREE.VertexNormalsHelper(object, 2, 0x00ff00);\n  scene.add(normalsHelper);\n}\n\n// Usage: visualizeNormals(scene, myMesh);"
+        },
+        {
+          "description": "Global Wireframe Override: Toggles a wireframe view for the entire scene. Helps isolate geometry vs. material issues. (Also in Snippet Drawer)",
+          "code": "function setGlobalWireframe(scene, enabled = true) {\n  scene.traverse((child) => {\n    if (child.isMesh && child.material) {\n      if (enabled) {\n        if (!child.userData.originalMaterial) {\n          child.userData.originalMaterial = child.material;\n        }\n        child.material = new THREE.MeshBasicMaterial({\n          color: 0xffffff,\n          wireframe: true\n        });\n      } else if (child.userData.originalMaterial) {\n        child.material = child.userData.originalMaterial;\n        delete child.userData.originalMaterial;\n      }\n    }\n  });\n}\n\n// Usage: setGlobalWireframe(scene, true);"
         }
       ]
     }

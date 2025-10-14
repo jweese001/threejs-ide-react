@@ -79,6 +79,14 @@
         { "name": "Standard", "file": "materials/standard.js" },
         { "name": "Wireframe", "file": "materials/wireframe.js" }
       ]
+    },
+    {
+      "name": "Debugging",
+      "items": [
+        { "name": "Bounding Box Helper", "file": "debugging/bounding-box.js" },
+        { "name": "Vertex Normals Helper", "file": "debugging/vertex-normals.js" },
+        { "name": "Global Wireframe Override", "file": "debugging/global-wireframe.js" }
+      ]
     }
   ]
 }
