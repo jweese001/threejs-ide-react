@@ -636,7 +636,7 @@ This scene uses Three.js v0.157.0 loaded from CDN.
       // Fetch and add assets
       for (const assetPath of assetPaths) {
         try {
-          const response = await fetch(`/${assetPath}`);
+          const response = await fetch(`${import.meta.env.BASE_URL}${assetPath}`);
           if (response.ok) {
             const blob = await response.blob();
             zip.file(assetPath, blob);
