@@ -610,7 +610,51 @@ ${code}
 
 This is an exported Three.js scene from the 3js IDE.
 
-## Running the Scene
+## ⚠️ IMPORTANT: Production Use Warning
+
+**This code was developed in the 3js IDE environment and requires modifications for use in production projects (Vite, Webpack, Next.js, etc.).**
+
+### The Problem
+The IDE automatically cleans up Three.js resources during development. This cleanup code is NOT included in the export. Without modifications, this code will cause:
+- Memory leaks in development servers with Hot Module Replacement (HMR)
+- Browser crashes after 5-10 hot reloads
+- Multiple animation loops running simultaneously
+- Duplicate WebGL contexts accumulating
+
+### Required Modifications
+Before using this code in a Vite/Webpack project, you MUST add:
+
+1. **Cleanup function** - Dispose renderer, geometries, materials, textures
+2. **Initialization guard** - Prevent multiple instances
+3. **HMR disposal hook** - For Vite: \`import.meta.hot.dispose(() => cleanup())\`
+4. **Observer management** - Disconnect ResizeObserver/IntersectionObserver
+
+### Quick Fix Template
+\`\`\`javascript
+let isInitialized = false;
+
+function cleanup() {
+  // Cancel animation, disconnect observers, dispose Three.js resources
+}
+
+function init() {
+  if (isInitialized) cleanup();
+  // ... your init code ...
+  isInitialized = true;
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => cleanup());
+}
+\`\`\`
+
+**For detailed implementation guide:**
+See: \`EXPORTING_CODE.md\` in the 3js IDE project repository
+Or: [GitHub - Three.js IDE Export Guide](https://github.com/jweese001/three-js-ide)
+
+---
+
+## Running the Scene (Standalone)
 
 1. Extract this ZIP file to a folder
 2. Serve the folder using a local web server (required for loading assets)
@@ -626,9 +670,11 @@ This is an exported Three.js scene from the 3js IDE.
 - \`images/\` - Texture and image files
 - \`README.md\` - This file
 
-## Note
+## Technical Notes
 
-This scene uses Three.js v0.157.0 loaded from CDN.
+- This scene uses Three.js v0.157.0 loaded from CDN
+- The exported HTML is standalone and works for simple viewing
+- For integration into dev environments (Vite/Webpack), see warning above
 `;
 
       zip.file('README.md', readme);
