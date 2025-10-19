@@ -130,6 +130,7 @@ function init() {
 
     window.addEventListener('resize', handleResize);
     animate();
+    handleResize();
 }
 
 function handleResize() {
@@ -167,7 +168,7 @@ function animate() {
     // Update shader time uniform for animation
     scene.children.forEach(child => {
         if (child.material && child.material.uniforms && child.material.uniforms.time) {
-            child.material.uniforms.time.value += 0.01;
+            child.material.uniforms.time.value += 0.09;
         }
     });
 
