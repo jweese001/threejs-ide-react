@@ -12,14 +12,11 @@
       ]
     },
     {
-      "name": "Examples",
+      "name": "Debugging",
       "items": [
-        { "name": "Empty Scene", "file": "examples/empty-scene.js" },
-        { "name": "Solar System", "file": "examples/solar-system.js" },
-        { "name": "Spinning Red Cube", "file": "examples/spinning-red-cube.js" },
-        { "name": "Particles and Points", "file": "examples/particles-points.js" },
-        { "name": "Dusty Scene", "file": "examples/dusty.js" },
-        { "name": "Nebula Scene", "file": "examples/nebula-scene.js" }
+        { "name": "Bounding Box Helper", "file": "debugging/bounding-box.js" },
+        { "name": "Vertex Normals Helper", "file": "debugging/vertex-normals.js" },
+        { "name": "Global Wireframe Override", "file": "debugging/global-wireframe.js" }
       ]
     },
     {
@@ -80,11 +77,26 @@
       ]
     },
     {
-      "name": "Debugging",
+      "name": "Scenes",
       "items": [
-        { "name": "Bounding Box Helper", "file": "debugging/bounding-box.js" },
-        { "name": "Vertex Normals Helper", "file": "debugging/vertex-normals.js" },
-        { "name": "Global Wireframe Override", "file": "debugging/global-wireframe.js" }
+        { "name": "Data Container", "file": "examples/data-container.js" },
+        { "name": "DNA Helix", "file": "examples/dna-helix.js" },
+        { "name": "Dusty Scene", "file": "examples/dusty.js" },
+        { "name": "Empty Scene", "file": "examples/empty-scene.js" },
+        { "name": "Flow Field", "file": "examples/flow-field.js" },
+        { "name": "Live Ink", "file": "examples/live-ink.js" },
+        { "name": "Morphing Mesh", "file": "examples/morphing-mesh.js" },
+        { "name": "Nebula Scene", "file": "examples/nebula-scene.js" },
+        { "name": "Network Graph", "file": "examples/network-graph.js" },
+        { "name": "Orbital Rings", "file": "examples/orbital-rings.js" },
+        { "name": "Particle Network Data Viz", "file": "examples/data-vis.js" },
+        { "name": "Particle Streams", "file": "examples/particle-streams.js" },
+        { "name": "Particles and Points", "file": "examples/particles-points.js" },
+        { "name": "Pulsing Grid", "file": "examples/pulsing-grid.js" },
+        { "name": "Solar System", "file": "examples/solar-system.js" },
+        { "name": "Spinning Red Cube", "file": "examples/spinning-red-cube.js" },
+        { "name": "Spiral Galaxy", "file": "examples/spiral-galaxy.js" },
+        { "name": "Wave Pattern", "file": "examples/wave-pattern.js" }
       ]
     }
   ]
