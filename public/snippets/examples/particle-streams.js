@@ -11,12 +11,12 @@ import * as THREE from 'three';
 // CONFIGURATION PARAMETERS
 // ============================================================================
 
-const STREAM_COUNT = 5;               // Number of particle streams
-const PARTICLES_PER_STREAM = 100;     // Particles in each stream
+const STREAM_COUNT = 200;               // Number of particle streams
+const PARTICLES_PER_STREAM = 30;     // Particles in each stream
 const PARTICLE_SIZE = 0.15;           // Size of each particle
 const PARTICLE_COLOR = 0xff1493;      // Hotpink particles
 const PARTICLE_OPACITY = 0.6;         // Transparency
-const STREAM_SPEED = 0.02;            // How fast particles flow
+const STREAM_SPEED = 0.002;            // How fast particles flow
 const STREAM_LENGTH = 20;             // Length of the stream path
 const BACKGROUND_COLOR = 0x1a1a1a;    // Dark background
 const CAMERA_Z = 15;                  // Camera distance

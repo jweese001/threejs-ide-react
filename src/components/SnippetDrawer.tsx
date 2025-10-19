@@ -45,92 +45,175 @@ const SnippetDrawer: React.FC<SnippetDrawerProps> = ({ onSnippetInsert, isOpen, 
     }));
   };
 
-  const handleSnippetClick = (snippetFile: string) => {
-    setLoadingSnippet(snippetFile);
-    fetch(`${import.meta.env.BASE_URL}snippets/${snippetFile}`)
-      .then(response => response.text())
-      .then(code => {
-        if (code && onSnippetInsert) {
-          onSnippetInsert(code);
-        }
-        setLoadingSnippet(null);
-        onClose(); // Close drawer after inserting
-      })
-      .catch(error => {
-        console.error(`Error loading snippet: ${snippetFile}`, error);
-        setLoadingSnippet(null);
-      });
-  };
+      const handleSnippetClick = (snippetFile: string) => {
 
-  // Filter categories and items based on search query
-  const filteredCategories = categories.map(category => {
-    const filteredItems = category.items.filter(item =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    return { ...category, items: filteredItems };
-  }).filter(category => category.items.length > 0);
+        setLoadingSnippet(snippetFile);
 
-  // Highlight matching text
-  const highlightMatch = (text: string) => {
-    if (!searchQuery) return text;
-    const regex = new RegExp(`(${searchQuery})`, 'gi');
-    const parts = text.split(regex);
-    return parts.map((part, i) =>
-      regex.test(part) ? <mark key={i} className={styles.highlight}>{part}</mark> : part
-    );
-  };
+        fetch(`${import.meta.env.BASE_URL}snippets/${snippetFile}`)
 
-  return (
-    <div className={`${styles.snippetDrawer} ${isOpen ? styles.open : ''}`}>
-      <h3 className={styles.drawerTitle}>Snippets</h3>
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
-          <p>Loading snippets...</p>
-        </div>
-      ) : (
-        <>
-          <div className={styles.searchContainer}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder="Search snippets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                className={styles.clearButton}
-                onClick={() => setSearchQuery('')}
-                title="Clear search"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
-              </button>
-            )}
-          </div>
-          <div className={styles.accordionContainer}>
-            {filteredCategories.map((category) => (
-            <div key={category.name} className={styles.snippetSection}>
-              <button
-                className={styles.snippetSectionHeader}
-                onClick={() => handleToggleSection(category.name)}
-              >
-                {category.name}
-                <span className={styles.icon}>
-                  {openSections[category.name] ? '▼' : '▶'}
-                </span>
-              </button>
-              <div
-                className={`${styles.collapsibleContent} ${openSections[category.name] ? styles.open : ''}`}
-              >
-                {category.items.map((item) => (
+          .then(response => response.text())
+
+          .then(code => {
+
+            if (code && onSnippetInsert) {
+
+              onSnippetInsert(code);
+
+            }
+
+            setLoadingSnippet(null);
+
+            onClose(); // Close drawer after inserting
+
+          })
+
+          .catch(error => {
+
+            console.error(`Error loading snippet: ${snippetFile}`, error);
+
+            setLoadingSnippet(null);
+
+          });
+
+      };
+
+    
+
+      // Filter categories and items based on search query
+
+      const filteredCategories = categories.map(category => {
+
+        const filteredItems = category.items.filter(item =>
+
+          item.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+        );
+
+        return { ...category, items: filteredItems };
+
+      }).filter(category => category.items.length > 0);
+
+    
+
+      // Highlight matching text
+
+      const highlightMatch = (text: string) => {
+
+        if (!searchQuery) return text;
+
+        const regex = new RegExp(`(${searchQuery})`, 'gi');
+
+        const parts = text.split(regex);
+
+        return parts.map((part, i) =>
+
+          regex.test(part) ? <mark key={i} className={styles.highlight}>{part}</mark> : part
+
+        );
+
+      };
+
+    
+
+      return (
+
+        <div className={`${styles.snippetDrawer} ${isOpen ? styles.open : ''}`}>
+
+          <h3 className={styles.drawerTitle}>Snippets</h3>
+
+          {loading ? (
+
+            <div className={styles.loadingContainer}>
+
+              <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>progress_activity</span>
+
+              <p>Loading snippets...</p>
+
+            </div>
+
+          ) : (
+
+            <>
+
+              <div className={styles.searchContainer}>
+
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
+
+                <input
+
+                  type="text"
+
+                  className={styles.searchInput}
+
+                  placeholder="Search snippets..."
+
+                  value={searchQuery}
+
+                  onChange={(e) => setSearchQuery(e.target.value)}
+
+                />
+
+                {searchQuery && (
+
                   <button
-                    key={item.name}
-                    className={styles.snippetButton}
-                    onClick={() => handleSnippetClick(item.file)}
-                    disabled={loadingSnippet === item.file}
+
+                    className={styles.clearButton}
+
+                    onClick={() => setSearchQuery('')}
+
+                    title="Clear search"
+
                   >
+
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+
+                  </button>
+
+                )}
+
+              </div>
+
+              <div className={styles.accordionContainer}>
+
+                {filteredCategories.map((category) => (
+
+                <div key={category.name} className={styles.snippetSection}>
+
+                  <button
+
+                    className={styles.snippetSectionHeader}
+
+                    onClick={() => handleToggleSection(category.name)}
+
+                  >
+
+                    {category.name}
+
+                    <span className={styles.icon}>
+
+                      {openSections[category.name] ? '▼' : '▶'}
+
+                    </span>
+
+                  </button>
+
+                  <div
+
+                    className={`${styles.collapsibleContent} ${openSections[category.name] ? styles.open : ''}`}>
+
+                    {category.items.map((item) => (
+
+                      <button
+
+                        key={item.name}
+
+                        className={styles.snippetButton}
+
+                        onClick={() => handleSnippetClick(item.file)}
+
+                        disabled={loadingSnippet === item.file}
+
+                      >
                     {loadingSnippet === item.file ? (
                       <>
                         <span className="material-symbols-outlined" style={{ fontSize: '16px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
