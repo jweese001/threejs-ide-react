@@ -125,7 +125,7 @@
 .collapsibleContent.open {
   padding-top: 10px;
   padding-bottom: 10px;
-  max-height: 500px; /* Adjust as needed */
+  max-height: 2000px; /* Increased to accommodate more items */
   transition: max-height 0.5s ease-in;
 }
 
