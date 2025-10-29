@@ -255,6 +255,48 @@
           "code": "function setGlobalWireframe(scene, enabled = true) {\n  scene.traverse((child) => {\n    if (child.isMesh && child.material) {\n      if (enabled) {\n        if (!child.userData.originalMaterial) {\n          child.userData.originalMaterial = child.material;\n        }\n        child.material = new THREE.MeshBasicMaterial({\n          color: 0xffffff,\n          wireframe: true\n        });\n      } else if (child.userData.originalMaterial) {\n        child.material = child.userData.originalMaterial;\n        delete child.userData.originalMaterial;\n      }\n    }\n  });\n}\n\n// Usage: setGlobalWireframe(scene, true);"
         }
       ]
+    },
+    {
+      "category": "Console Logging",
+      "items": [
+        {
+          "description": "Keypress Debug Logger: Press Shift+I to log all debug info at once (add after init function)",
+          "code": "window.addEventListener('keydown', (e) => {\n  if (e.shiftKey && e.key === 'I') { // Press Shift+I to log everything\n    console.log('=== Debug Info ===');\n    console.log('Camera position:', camera.position);\n    console.log('Camera rotation:', camera.rotation);\n    console.log('Objects in scene:', scene.children.length);\n    console.log('Renderer info:', renderer.info.render);\n    console.log('Mesh position:', mesh.position);\n    console.log('Material color:', mesh.material.color.getHexString());\n    console.log('==================');\n  }\n});"
+        },
+        {
+          "description": "Log Camera Position: Useful for finding good viewpoints",
+          "code": "console.log('Camera position:', camera.position);"
+        },
+        {
+          "description": "Log Object Count: Check for memory leaks",
+          "code": "console.log('Objects in scene:', scene.children.length);"
+        },
+        {
+          "description": "Log Geometry Info: Check vertex count",
+          "code": "console.log('Geometry vertices:', mesh.geometry.attributes.position.count);"
+        },
+        {
+          "description": "Log Renderer Info: Monitor performance (draw calls, triangles)",
+          "code": "console.log('Renderer info:', renderer.info.render);"
+        },
+        {
+          "description": "Log Material Properties: Debug visual issues",
+          "code": "console.log('Material color:', mesh.material.color.getHexString());"
+        }
+      ]
+    },
+    {
+      "category": "Error Handling",
+      "items": [
+        {
+          "description": "Texture Loading with Error Handler: Handle failed texture loads with fallback color",
+          "code": "const textureLoader = new THREE.TextureLoader();\ntextureLoader.load(\n  '/textures/myTexture.jpg',\n  (texture) => {\n    console.log('Texture loaded successfully');\n    material.map = texture;\n  },\n  undefined,\n  (error) => {\n    console.error('Error loading texture:', error);\n    // Fallback: use colored material instead\n    material.color.set(0xff00ff);\n  }\n);"
+        },
+        {
+          "description": "Model Loading with Error Handler: Handle failed model loads with placeholder geometry",
+          "code": "const loader = new OBJLoader();\nloader.load(\n  '/models/myModel.obj',\n  (obj) => {\n    scene.add(obj);\n    console.log('Model loaded successfully');\n  },\n  (xhr) => {\n    console.log((xhr.loaded / xhr.total * 100) + '% loaded');\n  },\n  (error) => {\n    console.error('Error loading model:', error);\n    // Fallback: create placeholder box\n    const geometry = new THREE.BoxGeometry(1, 1, 1);\n    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });\n    const placeholder = new THREE.Mesh(geometry, material);\n    scene.add(placeholder);\n    console.warn('Using placeholder geometry instead');\n  }\n);"
+        }
+      ]
     }
   ],
   "Adapting External Code": [

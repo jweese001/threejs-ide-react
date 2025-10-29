@@ -439,7 +439,7 @@ function App() {
 
         if (!shouldIgnore) {
           setConsoleMessages(prev => [...prev, {
-            id: messageIdCounter,
+            id: Date.now() + Math.random(), // Use timestamp + random for truly unique IDs
             type: level,
             message: message,
             timestamp: new Date(),
