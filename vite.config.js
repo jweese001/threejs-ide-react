@@ -5,4 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: '/threejs-ide-react/',
+  server: {
+    port: 5174,  // Use 5174 to avoid conflict with FlowBoard on 5173
+  },
 });

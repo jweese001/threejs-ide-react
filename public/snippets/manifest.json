@@ -40,6 +40,7 @@
       "name": "Helpers",
       "items": [
         { "name": "Axes", "file": "helpers/axes.js" },
+        { "name": "FlowBoard Capture", "file": "helpers/flowboard-capture.js" },
         { "name": "Grid", "file": "helpers/grid.js" },
         { "name": "Starfield", "file": "helpers/starfield.js" }
       ]

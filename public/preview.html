@@ -127,6 +127,36 @@
 
             const { type, code, importmap } = event.data;
 
+            if (type === 'captureCanvas') {
+                // Capture the WebGL canvas and send back to parent
+                const canvas = document.querySelector('canvas');
+                if (canvas) {
+                    try {
+                        const imageData = canvas.toDataURL('image/png');
+                        window.parent.postMessage({
+                            type: 'canvasCaptured',
+                            payload: {
+                                imageData,
+                                width: canvas.width,
+                                height: canvas.height
+                            }
+                        }, window.location.origin);
+                    } catch (error) {
+                        console.error('Failed to capture canvas:', error);
+                        window.parent.postMessage({
+                            type: 'canvasCaptured',
+                            payload: { error: error.message }
+                        }, window.location.origin);
+                    }
+                } else {
+                    window.parent.postMessage({
+                        type: 'canvasCaptured',
+                        payload: { error: 'No canvas found' }
+                    }, window.location.origin);
+                }
+                return;
+            }
+
             if (type === 'executeCode') {
                 // Inject dynamic importmap if provided
                 if (importmap) {

@@ -10,9 +10,11 @@ interface StatusBarProps {
   onToggleConsole: () => void;
   isConsoleOpen: boolean;
   onShareCode: () => void;
+  onSendToFlowBoard?: () => void;
+  isFlowBoardConnected?: boolean;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onShowCheatsheet, onToggleConsole, isConsoleOpen, onShareCode }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawerOpen, onExportCode, isExporting, onShowShortcuts, onShowCheatsheet, onToggleConsole, isConsoleOpen, onShareCode, onSendToFlowBoard, isFlowBoardConnected }) => {
   return (
     <div className="status-bar">
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -49,6 +51,30 @@ const StatusBar: React.FC<StatusBarProps> = ({ onToggleSnippets, isSnippetDrawer
             <span className="material-symbols-outlined">folder_zip</span>
           )}
         </button>
+        {onSendToFlowBoard && (
+          <button
+            className={`status-bar-button ${isFlowBoardConnected ? 'flowboard-connected' : ''}`}
+            onClick={onSendToFlowBoard}
+            title="Send to FlowBoard"
+            style={{ position: 'relative' }}
+          >
+            <span className="material-symbols-outlined">send</span>
+            {isFlowBoardConnected && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '4px',
+                  right: '4px',
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#22c55e',
+                  boxShadow: '0 0 4px #22c55e',
+                }}
+              />
+            )}
+          </button>
+        )}
         <a
           href="https://color.adobe.com/create/color-wheel"
           target="_blank"

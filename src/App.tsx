@@ -52,7 +52,7 @@ function init() {
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(60, w / h, 1, 2000);
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 
     //camera.position.x = 1;
     //camera.position.y = 3;
@@ -294,6 +294,13 @@ const CONSOLE_IGNORE_PATTERNS = [
   /^\d+% loaded$/i, // Ignore "X% loaded" messages
 ];
 
+// FlowBoard integration via window.opener postMessage
+const FLOWBOARD_ORIGINS = [
+  'http://localhost:5173',      // Local FlowBoard dev
+  'https://flowboard.netlify.app', // Production (update if different)
+  'https://jweese001.github.io',   // GitHub Pages
+];
+
 function App() {
   const [code, setCode] = useState(defaultCode);
   const [editorWidth, setEditorWidth] = useState(50);
@@ -309,10 +316,95 @@ function App() {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isCheatsheetOpen, setIsCheatsheetOpen] = useState(false);
   const [isConsoleDragging, setIsConsoleDragging] = useState(false);
+  const [isFlowBoardConnected, setIsFlowBoardConnected] = useState(false);
   const editorRef = useRef<EditorRef>(null);
   const monacoEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isIframeReady, setIsIframeReady] = useState(false);
+
+  // Handle sending capture to FlowBoard - defined first so it can be used in useEffect
+  const handleSendToFlowBoard = useCallback(() => {
+    console.log('📸 handleSendToFlowBoard called, iframeReady:', isIframeReady);
+    if (!iframeRef.current) {
+      console.warn('Preview iframe not available');
+      return;
+    }
+    if (!isIframeReady) {
+      console.warn('Preview not ready yet');
+      return;
+    }
+
+    // Request canvas capture from iframe
+    console.log('📸 Requesting canvas capture from iframe...');
+    iframeRef.current.contentWindow?.postMessage(
+      { type: 'captureCanvas' },
+      window.location.origin
+    );
+  }, [isIframeReady]);
+
+  // Initialize FlowBoard postMessage communication
+  useEffect(() => {
+    // Check if we were opened by FlowBoard
+    const hasOpener = window.opener && !window.opener.closed;
+    setIsFlowBoardConnected(hasOpener);
+
+    if (hasOpener) {
+      console.log('🔗 Opened by FlowBoard, connection established');
+    }
+
+    // Listen for messages from FlowBoard (opener window) and iframe
+    const handleMessage = (event: MessageEvent) => {
+      const { type, payload } = event.data || {};
+
+      // Skip logging for frequent/noisy messages
+      if (type && type !== 'console') {
+        console.log('📨 IDE received message:', event.origin, type);
+      }
+
+      // Handle FlowBoard capture requests
+      // Accept from any origin but verify message structure (we check window.opener for security)
+      if (type === 'request' && payload?.action === 'capture') {
+        console.log('📸 FlowBoard capture request received from:', event.origin);
+        // Trigger capture directly using ref
+        if (iframeRef.current) {
+          console.log('📸 Sending captureCanvas to iframe...');
+          iframeRef.current.contentWindow?.postMessage(
+            { type: 'captureCanvas' },
+            window.location.origin
+          );
+        } else {
+          console.warn('❌ iframeRef not available');
+        }
+      }
+      // Note: Other messages (iframe ready, console, etc.) are handled elsewhere
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Notify FlowBoard we're ready (if opened by it)
+    if (hasOpener) {
+      try {
+        // Try each origin until one works
+        for (const origin of FLOWBOARD_ORIGINS) {
+          try {
+            window.opener.postMessage({
+              type: 'status',
+              payload: { connected: true, mode: 'scene' },
+              timestamp: Date.now(),
+            }, origin);
+          } catch (e) {
+            // Origin didn't match, try next
+          }
+        }
+      } catch (e) {
+        console.warn('Could not send status to FlowBoard:', e);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   // Load code from URL or localStorage on startup
   useEffect(() => {
@@ -415,6 +507,36 @@ function App() {
         setIsIframeReady(true);
       } else if (type === 'reset') {
         runCode();
+      } else if (type === 'canvasCaptured') {
+        // Forward captured canvas to FlowBoard via window.opener
+        const captureData = payload as { imageData?: string; width?: number; height?: number; error?: string };
+        if (window.opener && !window.opener.closed && captureData.imageData) {
+          const message = {
+            type: 'capture',
+            payload: {
+              imageData: captureData.imageData,
+              width: captureData.width,
+              height: captureData.height,
+              sceneName: 'Three.js Scene',
+              sceneDescription: 'Captured from Three.js IDE',
+            },
+            timestamp: Date.now(),
+          };
+          // Send to all possible FlowBoard origins
+          for (const origin of FLOWBOARD_ORIGINS) {
+            try {
+              window.opener.postMessage(message, origin);
+            } catch (e) {
+              // Origin didn't match, try next
+            }
+          }
+          console.log('📤 Sent capture to FlowBoard');
+          setIsFlowBoardConnected(true);
+        } else if (captureData.error) {
+          console.error('Canvas capture failed:', captureData.error);
+        } else if (!window.opener || window.opener.closed) {
+          console.warn('FlowBoard window not available. Open IDE from FlowBoard to enable sending.');
+        }
       } else if (type === 'console') {
         // Handle console messages from iframe
         const { level, args } = payload as { level: 'log' | 'warn' | 'error'; args: any[] };
@@ -764,6 +886,8 @@ Or: [GitHub - Three.js IDE Export Guide](https://github.com/jweese001/three-js-i
         isConsoleOpen={isConsoleOpen}
         onShareCode={handleShareCode}
         onShowCheatsheet={() => setIsCheatsheetOpen(true)}
+        onSendToFlowBoard={handleSendToFlowBoard}
+        isFlowBoardConnected={isFlowBoardConnected}
       />
       <ShortcutsModal
         isOpen={isShortcutsOpen}
