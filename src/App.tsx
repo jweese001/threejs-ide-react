@@ -119,8 +119,8 @@ function init() {
     // --- ADD FOREGROUND OBJECTS HERE ---
     // Make Torus
     const geometry = new THREE.TorusGeometry(2.16, 0.024, 8, 64);
-    const material = new THREE.MeshBasicMaterial({ 
-        color: 0xF2D8E6, 
+    const material = new THREE.MeshBasicMaterial({
+        color: 0xF2D8E6,
         wireframe: true
         });
 
@@ -142,7 +142,7 @@ function init() {
 
     //Add all tori to the scene
     centralGroup.add( torus, torus2, torus3, torus4 );
-    
+
     // 2. Add them to the animation array
     toriToAnimate.push(torus, torus2, torus3, torus4);
 
@@ -151,7 +151,7 @@ function init() {
     objLoader.load(
         '/models/spiked.obj',
         function ( object ) {
-            
+
             const mainMaterial = new THREE.MeshBasicMaterial({
                 color: 'hotpink',
             });
@@ -167,11 +167,11 @@ function init() {
 
                     const wireframe = new THREE.Mesh( child.geometry, wireframeMaterial );
                     wireframe.userData.isWireframe = true;
-                    wireframe.scale.setScalar(1.001); 
+                    wireframe.scale.setScalar(1.001);
                     child.add( wireframe );
                 }
             });
-            
+
             object.position.y = -0.5;
             centralGroup.add( object );
 
@@ -183,7 +183,7 @@ function init() {
         function ( error ) {
             console.error( 'An error happened loading the .obj model', error );
         }
-    ) // --- END OF NEBULA BACKGROUND --- 
+    ) // --- END OF NEBULA BACKGROUND ---
 
     // Creates a starfield as a THREE.Points object
         function getStarfield({ numStars = 1000, textureURL = '/images/whiteDot32.png' } = {}) {
@@ -228,6 +228,12 @@ function init() {
             }
         }
     });
+
+    // Expose globals for FlowBoard capture & camera presets
+    window.renderer = renderer;
+    window.camera = camera;
+    window.scene = scene;
+    window.controls = controls;
 
     window.addEventListener('resize', handleResize);
     animate();
@@ -364,16 +370,66 @@ function App() {
       // Handle FlowBoard capture requests
       // Accept from any origin but verify message structure (we check window.opener for security)
       if (type === 'request' && payload?.action === 'capture') {
-        console.log('📸 FlowBoard capture request received from:', event.origin);
+        console.log('📸 FlowBoard capture request received from:', event.origin, 'resolution:', payload.resolution);
         // Trigger capture directly using ref
         if (iframeRef.current) {
           console.log('📸 Sending captureCanvas to iframe...');
           iframeRef.current.contentWindow?.postMessage(
-            { type: 'captureCanvas' },
+            {
+              type: 'captureCanvas',
+              resolution: payload.resolution // Pass resolution to iframe
+            },
             window.location.origin
           );
         } else {
           console.warn('❌ iframeRef not available');
+        }
+      }
+
+      // Handle ping messages from FlowBoard - respond with pong
+      if (type === 'ping') {
+        if (window.opener && !window.opener.closed) {
+          const pongMessage = {
+            type: 'pong',
+            payload: { connected: true },
+            timestamp: Date.now(),
+          };
+          // Send pong to all possible FlowBoard origins
+          for (const origin of FLOWBOARD_ORIGINS) {
+            try {
+              window.opener.postMessage(pongMessage, origin);
+            } catch (e) {
+              // Origin didn't match, try next
+            }
+          }
+        }
+      }
+
+      // Handle getCamera requests - get current camera state from preview
+      if (type === 'request' && payload?.action === 'getCamera') {
+        console.log('📷 FlowBoard getCamera request received');
+        if (iframeRef.current) {
+          // Store nodeId for response
+          (window as Window & { __pendingCameraNodeId?: string }).__pendingCameraNodeId = payload.nodeId;
+          iframeRef.current.contentWindow?.postMessage(
+            { type: 'getCameraState' },
+            window.location.origin
+          );
+        }
+      }
+
+      // Handle loadCamera requests - set camera state in preview
+      if (type === 'request' && payload?.action === 'loadCamera') {
+        console.log('📷 FlowBoard loadCamera request received:', payload.cameraState);
+        console.log('📷 iframeRef.current:', iframeRef.current);
+        if (iframeRef.current && payload.cameraState) {
+          console.log('📷 Sending setCameraState to iframe...');
+          iframeRef.current.contentWindow?.postMessage(
+            { type: 'setCameraState', cameraState: payload.cameraState },
+            window.location.origin
+          );
+        } else {
+          console.warn('📷 Cannot send: iframeRef or cameraState missing');
         }
       }
       // Note: Other messages (iframe ready, console, etc.) are handled elsewhere
@@ -536,6 +592,36 @@ function App() {
           console.error('Canvas capture failed:', captureData.error);
         } else if (!window.opener || window.opener.closed) {
           console.warn('FlowBoard window not available. Open IDE from FlowBoard to enable sending.');
+        }
+      } else if (type === 'cameraState') {
+        // Forward camera state to FlowBoard
+        const cameraData = payload as { position?: number[]; target?: number[]; fov?: number; error?: string };
+        const pendingNodeId = (window as Window & { __pendingCameraNodeId?: string }).__pendingCameraNodeId;
+        if (window.opener && !window.opener.closed && cameraData.position && pendingNodeId) {
+          const message = {
+            type: 'cameraState',
+            payload: {
+              nodeId: pendingNodeId,
+              cameraState: {
+                position: cameraData.position,
+                target: cameraData.target,
+                fov: cameraData.fov,
+              },
+            },
+            timestamp: Date.now(),
+          };
+          // Send to all possible FlowBoard origins
+          for (const origin of FLOWBOARD_ORIGINS) {
+            try {
+              window.opener.postMessage(message, origin);
+            } catch (e) {
+              // Origin didn't match, try next
+            }
+          }
+          console.log('📤 Sent camera state to FlowBoard');
+          delete (window as Window & { __pendingCameraNodeId?: string }).__pendingCameraNodeId;
+        } else if (cameraData.error) {
+          console.error('Camera state capture failed:', cameraData.error);
         }
       } else if (type === 'console') {
         // Handle console messages from iframe

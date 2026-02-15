@@ -16,7 +16,7 @@
         // Set the base href
         document.querySelector('base').href = window.BASE_PATH;
     </script>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' blob: https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http://localhost:*; connect-src 'self' blob: https: http://localhost:*;">
     <title>Preview</title>
     <script type="importmap">
     {
@@ -130,15 +130,58 @@
             if (type === 'captureCanvas') {
                 // Capture the WebGL canvas and send back to parent
                 const canvas = document.querySelector('canvas');
+                const { resolution } = event.data;
+
                 if (canvas) {
                     try {
-                        const imageData = canvas.toDataURL('image/png');
+                        let imageData;
+                        let captureWidth = canvas.width;
+                        let captureHeight = canvas.height;
+
+                        // If a specific resolution is requested, resize and capture
+                        if (resolution && (resolution.width !== canvas.width || resolution.height !== canvas.height)) {
+                            // Store original dimensions
+                            const originalWidth = canvas.width;
+                            const originalHeight = canvas.height;
+
+                            // Try to access the renderer through global scope
+                            if (window.renderer && window.renderer.setSize && window.camera && window.scene) {
+                                // Resize renderer to requested resolution
+                                window.renderer.setSize(resolution.width, resolution.height);
+                                if (window.camera.aspect !== undefined) {
+                                    window.camera.aspect = resolution.width / resolution.height;
+                                    window.camera.updateProjectionMatrix();
+                                }
+                                // Render at new resolution
+                                window.renderer.render(window.scene, window.camera);
+
+                                captureWidth = resolution.width;
+                                captureHeight = resolution.height;
+                                imageData = canvas.toDataURL('image/png');
+
+                                // Restore original size
+                                window.renderer.setSize(originalWidth, originalHeight);
+                                if (window.camera.aspect !== undefined) {
+                                    window.camera.aspect = originalWidth / originalHeight;
+                                    window.camera.updateProjectionMatrix();
+                                }
+                                window.renderer.render(window.scene, window.camera);
+                            } else {
+                                // Fallback: capture at current resolution if globals aren't available
+                                console.warn('Cannot resize: renderer/camera/scene not found in global scope. Capturing at current resolution.');
+                                imageData = canvas.toDataURL('image/png');
+                            }
+                        } else {
+                            // No resize needed, capture as-is
+                            imageData = canvas.toDataURL('image/png');
+                        }
+
                         window.parent.postMessage({
                             type: 'canvasCaptured',
                             payload: {
                                 imageData,
-                                width: canvas.width,
-                                height: canvas.height
+                                width: captureWidth,
+                                height: captureHeight
                             }
                         }, window.location.origin);
                     } catch (error) {
@@ -153,6 +196,75 @@
                         type: 'canvasCaptured',
                         payload: { error: 'No canvas found' }
                     }, window.location.origin);
+                }
+                return;
+            }
+
+            if (type === 'getCameraState') {
+                // Get the current camera state and send back to parent
+                if (window.camera && window.controls) {
+                    try {
+                        const position = [
+                            window.camera.position.x,
+                            window.camera.position.y,
+                            window.camera.position.z
+                        ];
+                        const target = [
+                            window.controls.target.x,
+                            window.controls.target.y,
+                            window.controls.target.z
+                        ];
+                        const fov = window.camera.fov || 60;
+
+                        window.parent.postMessage({
+                            type: 'cameraState',
+                            payload: { position, target, fov }
+                        }, window.location.origin);
+                    } catch (error) {
+                        console.error('Failed to get camera state:', error);
+                        window.parent.postMessage({
+                            type: 'cameraState',
+                            payload: { error: error.message }
+                        }, window.location.origin);
+                    }
+                } else {
+                    window.parent.postMessage({
+                        type: 'cameraState',
+                        payload: { error: 'Camera or controls not found in global scope' }
+                    }, window.location.origin);
+                }
+                return;
+            }
+
+            if (type === 'setCameraState') {
+                console.log('📷 setCameraState received:', event.data);
+                // Set the camera state
+                const { cameraState } = event.data;
+                console.log('📷 window.camera:', !!window.camera, 'window.controls:', !!window.controls);
+                if (window.camera && window.controls && cameraState) {
+                    try {
+                        console.log('📷 Setting camera position to:', cameraState.position);
+                        window.camera.position.set(
+                            cameraState.position[0],
+                            cameraState.position[1],
+                            cameraState.position[2]
+                        );
+                        window.controls.target.set(
+                            cameraState.target[0],
+                            cameraState.target[1],
+                            cameraState.target[2]
+                        );
+                        if (cameraState.fov && window.camera.fov !== undefined) {
+                            window.camera.fov = cameraState.fov;
+                            window.camera.updateProjectionMatrix();
+                        }
+                        window.controls.update();
+                        console.log('📷 Camera state restored successfully');
+                    } catch (error) {
+                        console.error('Failed to set camera state:', error);
+                    }
+                } else {
+                    console.warn('📷 Camera or controls not available for setCameraState. window.camera:', window.camera, 'window.controls:', window.controls);
                 }
                 return;
             }
