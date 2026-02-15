@@ -88,6 +88,115 @@
         })();
 
         /**
+         * Local model server fallback
+         * Tries localhost:8080 first for /models/ paths, falls back to relative path
+         */
+        (function() {
+            const LOCAL_MODEL_SERVER = 'http://localhost:8080';
+            const MODEL_PATH_PATTERN = /^\/?(models\/.*)/;
+
+            // Track which paths have failed locally so we don't retry
+            const localServerFailed = new Set();
+            let localServerAvailable = null; // null = unknown, true/false = tested
+
+            // Test if local server is available (once)
+            async function checkLocalServer() {
+                if (localServerAvailable !== null) return localServerAvailable;
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 1000);
+                    await fetch(LOCAL_MODEL_SERVER, {
+                        method: 'HEAD',
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
+                    clearTimeout(timeout);
+                    localServerAvailable = true;
+                    console.log('🗄️ Local model server detected at ' + LOCAL_MODEL_SERVER);
+                } catch {
+                    localServerAvailable = false;
+                }
+                return localServerAvailable;
+            }
+
+            // Check on load
+            checkLocalServer();
+
+            // Intercept fetch for model paths
+            const originalFetch = window.fetch;
+            window.fetch = async function(input, init) {
+                const url = typeof input === 'string' ? input : input.url;
+                const match = url.match(MODEL_PATH_PATTERN);
+
+                if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
+                    const localUrl = `${LOCAL_MODEL_SERVER}/${match[1]}`;
+                    try {
+                        const response = await originalFetch.call(this, localUrl, init);
+                        if (response.ok) {
+                            console.log('📦 Loaded from local server:', match[1]);
+                            return response;
+                        }
+                    } catch {
+                        // Local server failed for this path
+                    }
+                    localServerFailed.add(match[1]);
+                }
+
+                return originalFetch.call(this, input, init);
+            };
+
+            // Intercept XMLHttpRequest for Three.js loaders
+            const originalXHROpen = XMLHttpRequest.prototype.open;
+            const originalXHRSend = XMLHttpRequest.prototype.send;
+
+            XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                this._modelUrl = url;
+                this._modelMatch = url.match?.(MODEL_PATH_PATTERN);
+                return originalXHROpen.call(this, method, url, ...args);
+            };
+
+            XMLHttpRequest.prototype.send = function(body) {
+                const xhr = this;
+                const match = this._modelMatch;
+
+                if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
+                    const localUrl = `${LOCAL_MODEL_SERVER}/${match[1]}`;
+
+                    // Try local server first
+                    const localXhr = new XMLHttpRequest();
+                    localXhr.open(this._method || 'GET', localUrl, true);
+                    localXhr.responseType = this.responseType;
+
+                    localXhr.onload = function() {
+                        if (localXhr.status >= 200 && localXhr.status < 300) {
+                            console.log('📦 Loaded from local server:', match[1]);
+                            // Copy response to original XHR
+                            Object.defineProperty(xhr, 'response', { value: localXhr.response });
+                            Object.defineProperty(xhr, 'responseText', { value: localXhr.responseText });
+                            Object.defineProperty(xhr, 'status', { value: localXhr.status });
+                            Object.defineProperty(xhr, 'readyState', { value: 4 });
+                            if (xhr.onload) xhr.onload();
+                            if (xhr.onreadystatechange) xhr.onreadystatechange();
+                        } else {
+                            localServerFailed.add(match[1]);
+                            originalXHRSend.call(xhr, body);
+                        }
+                    };
+
+                    localXhr.onerror = function() {
+                        localServerFailed.add(match[1]);
+                        originalXHRSend.call(xhr, body);
+                    };
+
+                    localXhr.send(body);
+                    return;
+                }
+
+                return originalXHRSend.call(this, body);
+            };
+        })();
+
+        /**
          * Update or inject dynamic importmap
          */
         function updateImportmap(newImportmap) {
