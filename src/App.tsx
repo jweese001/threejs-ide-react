@@ -302,9 +302,8 @@ const CONSOLE_IGNORE_PATTERNS = [
 
 // FlowBoard integration via window.opener postMessage
 const FLOWBOARD_ORIGINS = [
-  'http://localhost:5173',      // Local FlowBoard dev
-  'https://flowboard.netlify.app', // Production (update if different)
-  'https://jweese001.github.io',   // GitHub Pages
+  'http://localhost:5173',       // Local FlowBoard dev
+  'https://jweese001.github.io', // GitHub Pages production
 ];
 
 function App() {
