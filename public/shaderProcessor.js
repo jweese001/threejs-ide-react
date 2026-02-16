@@ -153,6 +153,217 @@ const HalftoneShader = {
   `,
 };
 
+/**
+ * Sharpen Shader
+ * Enhances edges and details using unsharp mask technique
+ * Uniforms: amount (0-2)
+ */
+const SharpenShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    resolution: { value: new THREE.Vector2(1, 1) },
+    amount: { value: 0.5 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution;
+    uniform float amount;
+    varying vec2 vUv;
+
+    void main() {
+      vec2 texelSize = 1.0 / resolution;
+
+      // Sample center and neighboring pixels
+      vec4 center = texture2D(tDiffuse, vUv);
+      vec4 top = texture2D(tDiffuse, vUv + vec2(0.0, texelSize.y));
+      vec4 bottom = texture2D(tDiffuse, vUv - vec2(0.0, texelSize.y));
+      vec4 left = texture2D(tDiffuse, vUv - vec2(texelSize.x, 0.0));
+      vec4 right = texture2D(tDiffuse, vUv + vec2(texelSize.x, 0.0));
+
+      // Laplacian edge detection kernel
+      vec4 laplacian = center * 4.0 - top - bottom - left - right;
+
+      // Add sharpening
+      vec4 result = center + laplacian * amount;
+
+      gl_FragColor = vec4(clamp(result.rgb, 0.0, 1.0), center.a);
+    }
+  `,
+};
+
+/**
+ * Chromatic Aberration Shader
+ * Separates RGB channels for lens distortion effect
+ * Uniforms: offset (pixel distance), angle (direction in radians)
+ */
+const ChromaticShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    resolution: { value: new THREE.Vector2(1, 1) },
+    offset: { value: 5.0 },
+    angle: { value: 0.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution;
+    uniform float offset;
+    uniform float angle;
+    varying vec2 vUv;
+
+    void main() {
+      vec2 texelSize = 1.0 / resolution;
+      vec2 dir = vec2(cos(angle), sin(angle)) * texelSize * offset;
+
+      // Sample each channel with offset
+      float r = texture2D(tDiffuse, vUv + dir).r;
+      float g = texture2D(tDiffuse, vUv).g;
+      float b = texture2D(tDiffuse, vUv - dir).b;
+      float a = texture2D(tDiffuse, vUv).a;
+
+      gl_FragColor = vec4(r, g, b, a);
+    }
+  `,
+};
+
+/**
+ * Noise/Grain Shader
+ * Adds film grain texture
+ * Uniforms: intensity (0-1), scale (grain size)
+ */
+const NoiseShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    resolution: { value: new THREE.Vector2(1, 1) },
+    intensity: { value: 0.3 },
+    scale: { value: 1.0 },
+    time: { value: 0.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution;
+    uniform float intensity;
+    uniform float scale;
+    uniform float time;
+    varying vec2 vUv;
+
+    // Simple noise function
+    float random(vec2 st) {
+      return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+    }
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+
+      // Generate noise based on pixel position and scale
+      vec2 noiseCoord = vUv * resolution / scale;
+      float noise = random(noiseCoord + time) * 2.0 - 1.0;
+
+      // Apply noise as luminance variation
+      vec3 result = color.rgb + vec3(noise * intensity);
+
+      gl_FragColor = vec4(clamp(result, 0.0, 1.0), color.a);
+    }
+  `,
+};
+
+/**
+ * Posterize Shader
+ * Reduces the number of color levels
+ * Uniforms: levels (2-32)
+ */
+const PosterizeShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    levels: { value: 8.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float levels;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+
+      // Quantize each channel to the specified number of levels
+      vec3 result = floor(color.rgb * levels) / (levels - 1.0);
+
+      gl_FragColor = vec4(result, color.a);
+    }
+  `,
+};
+
+/**
+ * Color Adjustment Shader
+ * Adjusts brightness, contrast, and saturation
+ * Uniforms: brightness (-1 to 1), contrast (0-2), saturation (0-2)
+ */
+const ColorAdjustShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    brightness: { value: 0.0 },
+    contrast: { value: 1.0 },
+    saturation: { value: 1.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float brightness;
+    uniform float contrast;
+    uniform float saturation;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+
+      // Brightness
+      vec3 result = color.rgb + brightness;
+
+      // Contrast (pivot around 0.5)
+      result = (result - 0.5) * contrast + 0.5;
+
+      // Saturation
+      float gray = dot(result, vec3(0.299, 0.587, 0.114));
+      result = mix(vec3(gray), result, saturation);
+
+      gl_FragColor = vec4(clamp(result, 0.0, 1.0), color.a);
+    }
+  `,
+};
+
 // ============================================
 // SHADER PROCESSOR CLASS
 // ============================================
@@ -303,6 +514,49 @@ class ShaderProcessor {
         break;
       }
 
+      case 'sharpen': {
+        const pass = new ShaderPass(SharpenShader);
+        pass.uniforms.resolution.value.set(width, height);
+        pass.uniforms.amount.value = uniforms.amount ?? 0.5;
+        this.composer.addPass(pass);
+        break;
+      }
+
+      case 'chromatic': {
+        const pass = new ShaderPass(ChromaticShader);
+        pass.uniforms.resolution.value.set(width, height);
+        pass.uniforms.offset.value = uniforms.offset ?? 5.0;
+        pass.uniforms.angle.value = (uniforms.angle ?? 0) * Math.PI / 180;
+        this.composer.addPass(pass);
+        break;
+      }
+
+      case 'noise': {
+        const pass = new ShaderPass(NoiseShader);
+        pass.uniforms.resolution.value.set(width, height);
+        pass.uniforms.intensity.value = uniforms.intensity ?? 0.3;
+        pass.uniforms.scale.value = uniforms.scale ?? 1.0;
+        pass.uniforms.time.value = Math.random() * 1000; // Random seed for noise
+        this.composer.addPass(pass);
+        break;
+      }
+
+      case 'posterize': {
+        const pass = new ShaderPass(PosterizeShader);
+        pass.uniforms.levels.value = uniforms.levels ?? 8.0;
+        this.composer.addPass(pass);
+        break;
+      }
+
+      case 'colorAdjust': {
+        const pass = new ShaderPass(ColorAdjustShader);
+        pass.uniforms.brightness.value = uniforms.brightness ?? 0.0;
+        pass.uniforms.contrast.value = uniforms.contrast ?? 1.0;
+        pass.uniforms.saturation.value = uniforms.saturation ?? 1.0;
+        this.composer.addPass(pass);
+        break;
+      }
+
       default:
         console.warn(`Unknown shader type: ${shaderType}`);
     }
@@ -334,4 +588,16 @@ const shaderProcessor = new ShaderProcessor();
 // Expose to window for use in preview.html message handler
 window.shaderProcessor = shaderProcessor;
 
-export { shaderProcessor, ShaderProcessor, VignetteShader, KawaseBlurShader, BlurShader, HalftoneShader };
+export {
+  shaderProcessor,
+  ShaderProcessor,
+  VignetteShader,
+  KawaseBlurShader,
+  BlurShader,
+  HalftoneShader,
+  SharpenShader,
+  ChromaticShader,
+  NoiseShader,
+  PosterizeShader,
+  ColorAdjustShader,
+};
