@@ -98,30 +98,9 @@
 
             // Track which paths have failed locally so we don't retry
             const localServerFailed = new Set();
-            let localServerAvailable = null; // null = unknown, true/false = tested
-
-            // Test if local server is available (once)
-            async function checkLocalServer() {
-                if (localServerAvailable !== null) return localServerAvailable;
-                try {
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 1000);
-                    await fetch(LOCAL_MODEL_SERVER, {
-                        method: 'HEAD',
-                        signal: controller.signal,
-                        mode: 'cors'
-                    });
-                    clearTimeout(timeout);
-                    localServerAvailable = true;
-                    console.log('🗄️ Local model server detected at ' + LOCAL_MODEL_SERVER);
-                } catch {
-                    localServerAvailable = false;
-                }
-                return localServerAvailable;
-            }
-
-            // Check on load
-            checkLocalServer();
+            // Always try local server - don't pre-check (avoids mixed content issues)
+            let localServerAvailable = true;
+            console.log('🗄️ Local model server enabled at ' + LOCAL_MODEL_SERVER + ' (will try on each request)');
 
             // Intercept fetch for model paths
             const originalFetch = window.fetch;
