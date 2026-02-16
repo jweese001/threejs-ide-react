@@ -89,11 +89,12 @@
 
         /**
          * Local model server fallback
-         * Tries localhost:8080 first for /models/ paths, falls back to relative path
+         * Tries localhost:8080 first for model files, falls back to relative path
          */
         (function() {
             const LOCAL_MODEL_SERVER = 'http://localhost:8080';
-            const MODEL_PATH_PATTERN = /^\/?(models\/.*)/;
+            // Match models/ paths OR common 3D file extensions directly
+            const MODEL_PATH_PATTERN = /^\/?((?:models\/.*)|(?:[^\/]*\.(?:obj|gltf|glb|fbx|stl|ply|dae|3ds|mtl|bin)))$/i;
 
             // Track which paths have failed locally so we don't retry
             const localServerFailed = new Set();
@@ -129,15 +130,23 @@
                 const match = url.match(MODEL_PATH_PATTERN);
 
                 if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
-                    const localUrl = `${LOCAL_MODEL_SERVER}/${match[1]}`;
-                    try {
-                        const response = await originalFetch.call(this, localUrl, init);
-                        if (response.ok) {
-                            console.log('📦 Loaded from local server:', match[1]);
-                            return response;
+                    // Try paths: as-is, then with models/ prefix if not already present
+                    const pathsToTry = [match[1]];
+                    if (!match[1].startsWith('models/')) {
+                        pathsToTry.push(`models/${match[1]}`);
+                    }
+
+                    for (const path of pathsToTry) {
+                        const localUrl = `${LOCAL_MODEL_SERVER}/${path}`;
+                        try {
+                            const response = await originalFetch.call(this, localUrl, init);
+                            if (response.ok) {
+                                console.log('📦 Loaded from local server:', path);
+                                return response;
+                            }
+                        } catch {
+                            // Local server failed for this path
                         }
-                    } catch {
-                        // Local server failed for this path
                     }
                     localServerFailed.add(match[1]);
                 }
@@ -151,6 +160,7 @@
 
             XMLHttpRequest.prototype.open = function(method, url, ...args) {
                 this._modelUrl = url;
+                this._modelMethod = method;
                 this._modelMatch = url.match?.(MODEL_PATH_PATTERN);
                 return originalXHROpen.call(this, method, url, ...args);
             };
@@ -160,35 +170,51 @@
                 const match = this._modelMatch;
 
                 if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
-                    const localUrl = `${LOCAL_MODEL_SERVER}/${match[1]}`;
+                    // Try paths: as-is, then with models/ prefix if not already present
+                    const pathsToTry = [match[1]];
+                    if (!match[1].startsWith('models/')) {
+                        pathsToTry.push(`models/${match[1]}`);
+                    }
 
-                    // Try local server first
-                    const localXhr = new XMLHttpRequest();
-                    localXhr.open(this._method || 'GET', localUrl, true);
-                    localXhr.responseType = this.responseType;
-
-                    localXhr.onload = function() {
-                        if (localXhr.status >= 200 && localXhr.status < 300) {
-                            console.log('📦 Loaded from local server:', match[1]);
-                            // Copy response to original XHR
-                            Object.defineProperty(xhr, 'response', { value: localXhr.response });
-                            Object.defineProperty(xhr, 'responseText', { value: localXhr.responseText });
-                            Object.defineProperty(xhr, 'status', { value: localXhr.status });
-                            Object.defineProperty(xhr, 'readyState', { value: 4 });
-                            if (xhr.onload) xhr.onload();
-                            if (xhr.onreadystatechange) xhr.onreadystatechange();
-                        } else {
+                    // Try each path sequentially
+                    function tryPath(index) {
+                        if (index >= pathsToTry.length) {
+                            // All paths failed, use original
                             localServerFailed.add(match[1]);
                             originalXHRSend.call(xhr, body);
+                            return;
                         }
-                    };
 
-                    localXhr.onerror = function() {
-                        localServerFailed.add(match[1]);
-                        originalXHRSend.call(xhr, body);
-                    };
+                        const path = pathsToTry[index];
+                        const localUrl = `${LOCAL_MODEL_SERVER}/${path}`;
+                        const localXhr = new XMLHttpRequest();
+                        localXhr.open(xhr._modelMethod || 'GET', localUrl, true);
+                        localXhr.responseType = xhr.responseType;
 
-                    localXhr.send(body);
+                        localXhr.onload = function() {
+                            if (localXhr.status >= 200 && localXhr.status < 300) {
+                                console.log('📦 Loaded from local server:', path);
+                                Object.defineProperty(xhr, 'response', { value: localXhr.response });
+                                Object.defineProperty(xhr, 'responseText', { value: localXhr.responseText });
+                                Object.defineProperty(xhr, 'status', { value: localXhr.status });
+                                Object.defineProperty(xhr, 'readyState', { value: 4 });
+                                if (xhr.onload) xhr.onload();
+                                if (xhr.onreadystatechange) xhr.onreadystatechange();
+                            } else {
+                                // Try next path
+                                tryPath(index + 1);
+                            }
+                        };
+
+                        localXhr.onerror = function() {
+                            // Try next path
+                            tryPath(index + 1);
+                        };
+
+                        localXhr.send(body);
+                    }
+
+                    tryPath(0);
                     return;
                 }
 
