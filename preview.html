@@ -93,41 +93,60 @@
          */
         (function() {
             const LOCAL_MODEL_SERVER = 'http://localhost:8080';
-            // Match models/ paths OR common 3D file extensions directly
-            const MODEL_PATH_PATTERN = /^\/?((?:models\/.*)|(?:[^\/]*\.(?:obj|gltf|glb|fbx|stl|ply|dae|3ds|mtl|bin)))$/i;
+            // Model file extensions to intercept
+            const MODEL_EXTENSIONS = /\.(obj|gltf|glb|fbx|stl|ply|dae|3ds|mtl|bin)$/i;
+
+            // Extract model path from URL (handles both relative and absolute URLs)
+            function extractModelPath(url) {
+                if (!MODEL_EXTENSIONS.test(url)) return null;
+
+                // Try to extract path containing models/ or just the filename
+                const modelsMatch = url.match(/\/(models\/[^?#]+)/i);
+                if (modelsMatch) return modelsMatch[1];
+
+                // Extract just the filename for model files
+                const filenameMatch = url.match(/\/([^\/]+\.(?:obj|gltf|glb|fbx|stl|ply|dae|3ds|mtl|bin))(?:\?|#|$)/i);
+                if (filenameMatch) return filenameMatch[1];
+
+                // Handle relative paths
+                const relativeMatch = url.match(/^\/?(models\/[^?#]+)/i);
+                if (relativeMatch) return relativeMatch[1];
+
+                return null;
+            }
 
             // Track which paths have failed locally so we don't retry
             const localServerFailed = new Set();
-            // Always try local server - don't pre-check (avoids mixed content issues)
-            let localServerAvailable = true;
-            console.log('🗄️ Local model server enabled at ' + LOCAL_MODEL_SERVER + ' (will try on each request)');
+            console.log('🗄️ Local model server enabled at ' + LOCAL_MODEL_SERVER);
 
             // Intercept fetch for model paths
             const originalFetch = window.fetch;
             window.fetch = async function(input, init) {
                 const url = typeof input === 'string' ? input : input.url;
-                const match = url.match(MODEL_PATH_PATTERN);
+                const modelPath = extractModelPath(url);
 
-                if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
+                if (modelPath && !localServerFailed.has(modelPath)) {
                     // Try paths: as-is, then with models/ prefix if not already present
-                    const pathsToTry = [match[1]];
-                    if (!match[1].startsWith('models/')) {
-                        pathsToTry.push(`models/${match[1]}`);
+                    const pathsToTry = [modelPath];
+                    if (!modelPath.startsWith('models/')) {
+                        pathsToTry.push(`models/${modelPath}`);
                     }
 
                     for (const path of pathsToTry) {
                         const localUrl = `${LOCAL_MODEL_SERVER}/${path}`;
                         try {
+                            console.log('🔍 Trying local server:', localUrl);
                             const response = await originalFetch.call(this, localUrl, init);
                             if (response.ok) {
                                 console.log('📦 Loaded from local server:', path);
                                 return response;
                             }
-                        } catch {
-                            // Local server failed for this path
+                        } catch (e) {
+                            console.log('⚠️ Local server failed:', e.message);
                         }
                     }
-                    localServerFailed.add(match[1]);
+                    localServerFailed.add(modelPath);
+                    console.log('↩️ Falling back to original URL');
                 }
 
                 return originalFetch.call(this, input, init);
@@ -140,39 +159,41 @@
             XMLHttpRequest.prototype.open = function(method, url, ...args) {
                 this._modelUrl = url;
                 this._modelMethod = method;
-                this._modelMatch = url.match?.(MODEL_PATH_PATTERN);
+                this._modelPath = extractModelPath(url);
                 return originalXHROpen.call(this, method, url, ...args);
             };
 
             XMLHttpRequest.prototype.send = function(body) {
                 const xhr = this;
-                const match = this._modelMatch;
+                const modelPath = this._modelPath;
 
-                if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
+                if (modelPath && !localServerFailed.has(modelPath)) {
                     // Try paths: as-is, then with models/ prefix if not already present
-                    const pathsToTry = [match[1]];
-                    if (!match[1].startsWith('models/')) {
-                        pathsToTry.push(`models/${match[1]}`);
+                    const pathsToTry = [modelPath];
+                    if (!modelPath.startsWith('models/')) {
+                        pathsToTry.push(`models/${modelPath}`);
                     }
 
                     // Try each path sequentially
                     function tryPath(index) {
                         if (index >= pathsToTry.length) {
                             // All paths failed, use original
-                            localServerFailed.add(match[1]);
+                            localServerFailed.add(modelPath);
+                            console.log('↩️ XHR falling back to original URL');
                             originalXHRSend.call(xhr, body);
                             return;
                         }
 
                         const path = pathsToTry[index];
                         const localUrl = `${LOCAL_MODEL_SERVER}/${path}`;
+                        console.log('🔍 XHR trying local server:', localUrl);
                         const localXhr = new XMLHttpRequest();
                         localXhr.open(xhr._modelMethod || 'GET', localUrl, true);
                         localXhr.responseType = xhr.responseType;
 
                         localXhr.onload = function() {
                             if (localXhr.status >= 200 && localXhr.status < 300) {
-                                console.log('📦 Loaded from local server:', path);
+                                console.log('📦 XHR loaded from local server:', path);
                                 Object.defineProperty(xhr, 'response', { value: localXhr.response });
                                 Object.defineProperty(xhr, 'responseText', { value: localXhr.responseText });
                                 Object.defineProperty(xhr, 'status', { value: localXhr.status });
@@ -186,6 +207,7 @@
                         };
 
                         localXhr.onerror = function() {
+                            console.log('⚠️ XHR local server failed for:', path);
                             // Try next path
                             tryPath(index + 1);
                         };
