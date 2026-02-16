@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Set base path for asset loading
+        window.BASE_PATH = (() => {
+            const pathname = window.location.pathname;
+            const match = pathname.match(/^(\/[^\/]+)\//);
+            return match ? match[1] + '/' : '/';
+        })();
+    </script>
+    <base></base>
+    <script>
+        // Set the base href
+        document.querySelector('base').href = window.BASE_PATH;
+    </script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://cdn.skypack.dev https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http://localhost:*; connect-src 'self' blob: https: http://localhost:*;">
+    <title>Preview</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/",
+            "gsap": "https://cdn.skypack.dev/gsap",
+            "lil-gui": "https://cdn.skypack.dev/lil-gui"
+        }
+    }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <script>
+        // Intercept console methods and forward to parent
+        (function() {
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+
+            // Serialize arguments for postMessage (handles Error objects, etc.)
+            function serializeArgs(args) {
+                return args.map(arg => {
+                    if (arg instanceof Error) {
+                        return {
+                            __isError: true,
+                            name: arg.name,
+                            message: arg.message,
+                            stack: arg.stack
+                        };
+                    } else if (typeof arg === 'object' && arg !== null) {
+                        try {
+                            // Try to stringify, fallback to toString
+                            return JSON.parse(JSON.stringify(arg));
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }
+                    return arg;
+                });
+            }
+
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                window.parent.postMessage({
+                    type: 'console',
+                    payload: { level: 'log', args: serializeArgs(args) }
+                }, window.location.origin);
+            };
+
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                window.parent.postMessage({
+                    type: 'console',
+                    payload: { level: 'warn', args: serializeArgs(args) }
+                }, window.location.origin);
+            };
+
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                window.parent.postMessage({
+                    type: 'console',
+                    payload: { level: 'error', args: serializeArgs(args) }
+                }, window.location.origin);
+            };
+        })();
+
+        /**
+         * Local model server fallback
+         * Tries localhost:8080 first for /models/ paths, falls back to relative path
+         */
+        (function() {
+            const LOCAL_MODEL_SERVER = 'http://localhost:8080';
+            const MODEL_PATH_PATTERN = /^\/?(models\/.*)/;
+
+            // Track which paths have failed locally so we don't retry
+            const localServerFailed = new Set();
+            let localServerAvailable = null; // null = unknown, true/false = tested
+
+            // Test if local server is available (once)
+            async function checkLocalServer() {
+                if (localServerAvailable !== null) return localServerAvailable;
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 1000);
+                    await fetch(LOCAL_MODEL_SERVER, {
+                        method: 'HEAD',
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
+                    clearTimeout(timeout);
+                    localServerAvailable = true;
+                    console.log('🗄️ Local model server detected at ' + LOCAL_MODEL_SERVER);
+                } catch {
+                    localServerAvailable = false;
+                }
+                return localServerAvailable;
+            }
+
+            // Check on load
+            checkLocalServer();
+
+            // Intercept fetch for model paths
+            const originalFetch = window.fetch;
+            window.fetch = async function(input, init) {
+                const url = typeof input === 'string' ? input : input.url;
+                const match = url.match(MODEL_PATH_PATTERN);
+
+                if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
+                    const localUrl = `${LOCAL_MODEL_SERVER}/${match[1]}`;
+                    try {
+                        const response = await originalFetch.call(this, localUrl, init);
+                        if (response.ok) {
+                            console.log('📦 Loaded from local server:', match[1]);
+                            return response;
+                        }
+                    } catch {
+                        // Local server failed for this path
+                    }
+                    localServerFailed.add(match[1]);
+                }
+
+                return originalFetch.call(this, input, init);
+            };
+
+            // Intercept XMLHttpRequest for Three.js loaders
+            const originalXHROpen = XMLHttpRequest.prototype.open;
+            const originalXHRSend = XMLHttpRequest.prototype.send;
+
+            XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                this._modelUrl = url;
+                this._modelMatch = url.match?.(MODEL_PATH_PATTERN);
+                return originalXHROpen.call(this, method, url, ...args);
+            };
+
+            XMLHttpRequest.prototype.send = function(body) {
+                const xhr = this;
+                const match = this._modelMatch;
+
+                if (match && !localServerFailed.has(match[1]) && localServerAvailable !== false) {
+                    const localUrl = `${LOCAL_MODEL_SERVER}/${match[1]}`;
+
+                    // Try local server first
+                    const localXhr = new XMLHttpRequest();
+                    localXhr.open(this._method || 'GET', localUrl, true);
+                    localXhr.responseType = this.responseType;
+
+                    localXhr.onload = function() {
+                        if (localXhr.status >= 200 && localXhr.status < 300) {
+                            console.log('📦 Loaded from local server:', match[1]);
+                            // Copy response to original XHR
+                            Object.defineProperty(xhr, 'response', { value: localXhr.response });
+                            Object.defineProperty(xhr, 'responseText', { value: localXhr.responseText });
+                            Object.defineProperty(xhr, 'status', { value: localXhr.status });
+                            Object.defineProperty(xhr, 'readyState', { value: 4 });
+                            if (xhr.onload) xhr.onload();
+                            if (xhr.onreadystatechange) xhr.onreadystatechange();
+                        } else {
+                            localServerFailed.add(match[1]);
+                            originalXHRSend.call(xhr, body);
+                        }
+                    };
+
+                    localXhr.onerror = function() {
+                        localServerFailed.add(match[1]);
+                        originalXHRSend.call(xhr, body);
+                    };
+
+                    localXhr.send(body);
+                    return;
+                }
+
+                return originalXHRSend.call(this, body);
+            };
+        })();
+
+        /**
+         * Update or inject dynamic importmap
+         */
+        function updateImportmap(newImportmap) {
+            // Remove old dynamic importmap if it exists
+            const oldDynamicMap = document.querySelector('script[type="importmap"]#dynamic-importmap');
+            if (oldDynamicMap) {
+                oldDynamicMap.remove();
+            }
+
+            // Create new dynamic importmap
+            const script = document.createElement('script');
+            script.type = 'importmap';
+            script.id = 'dynamic-importmap';
+            script.textContent = JSON.stringify(newImportmap);
+
+            // Insert before the first script in head (after static importmap)
+            const firstScript = document.head.querySelector('script');
+            if (firstScript) {
+                document.head.insertBefore(script, firstScript.nextSibling);
+            } else {
+                document.head.appendChild(script);
+            }
+
+            // Only log if there are actual external packages
+            const hasExternalPackages = Object.keys(newImportmap.imports || {}).length > 0;
+            if (hasExternalPackages) {
+                console.log('📦 Dynamic importmap updated:', newImportmap);
+            }
+        }
+
+        window.addEventListener('message', (event) => {
+            // IMPORTANT: Check the origin of the message for security
+            if (event.origin !== window.location.origin) {
+                console.error("Discarding message from unknown origin:", event.origin);
+                return;
+            }
+
+            const { type, code, importmap } = event.data;
+
+            if (type === 'captureCanvas') {
+                // Capture the WebGL canvas and send back to parent
+                const canvas = document.querySelector('canvas');
+                const { resolution } = event.data;
+
+                if (canvas) {
+                    try {
+                        let imageData;
+                        let captureWidth = canvas.width;
+                        let captureHeight = canvas.height;
+
+                        // If a specific resolution is requested, resize and capture
+                        if (resolution && (resolution.width !== canvas.width || resolution.height !== canvas.height)) {
+                            // Store original dimensions
+                            const originalWidth = canvas.width;
+                            const originalHeight = canvas.height;
+
+                            // Try to access the renderer through global scope
+                            if (window.renderer && window.renderer.setSize && window.camera && window.scene) {
+                                // Resize renderer to requested resolution
+                                window.renderer.setSize(resolution.width, resolution.height);
+                                if (window.camera.aspect !== undefined) {
+                                    window.camera.aspect = resolution.width / resolution.height;
+                                    window.camera.updateProjectionMatrix();
+                                }
+                                // Render at new resolution
+                                window.renderer.render(window.scene, window.camera);
+
+                                captureWidth = resolution.width;
+                                captureHeight = resolution.height;
+                                imageData = canvas.toDataURL('image/png');
+
+                                // Restore original size
+                                window.renderer.setSize(originalWidth, originalHeight);
+                                if (window.camera.aspect !== undefined) {
+                                    window.camera.aspect = originalWidth / originalHeight;
+                                    window.camera.updateProjectionMatrix();
+                                }
+                                window.renderer.render(window.scene, window.camera);
+                            } else {
+                                // Fallback: capture at current resolution if globals aren't available
+                                console.warn('Cannot resize: renderer/camera/scene not found in global scope. Capturing at current resolution.');
+                                imageData = canvas.toDataURL('image/png');
+                            }
+                        } else {
+                            // No resize needed, capture as-is
+                            imageData = canvas.toDataURL('image/png');
+                        }
+
+                        window.parent.postMessage({
+                            type: 'canvasCaptured',
+                            payload: {
+                                imageData,
+                                width: captureWidth,
+                                height: captureHeight
+                            }
+                        }, window.location.origin);
+                    } catch (error) {
+                        console.error('Failed to capture canvas:', error);
+                        window.parent.postMessage({
+                            type: 'canvasCaptured',
+                            payload: { error: error.message }
+                        }, window.location.origin);
+                    }
+                } else {
+                    window.parent.postMessage({
+                        type: 'canvasCaptured',
+                        payload: { error: 'No canvas found' }
+                    }, window.location.origin);
+                }
+                return;
+            }
+
+            if (type === 'getCameraState') {
+                // Get the current camera state and send back to parent
+                if (window.camera && window.controls) {
+                    try {
+                        const position = [
+                            window.camera.position.x,
+                            window.camera.position.y,
+                            window.camera.position.z
+                        ];
+                        const target = [
+                            window.controls.target.x,
+                            window.controls.target.y,
+                            window.controls.target.z
+                        ];
+                        const fov = window.camera.fov || 60;
+
+                        window.parent.postMessage({
+                            type: 'cameraState',
+                            payload: { position, target, fov }
+                        }, window.location.origin);
+                    } catch (error) {
+                        console.error('Failed to get camera state:', error);
+                        window.parent.postMessage({
+                            type: 'cameraState',
+                            payload: { error: error.message }
+                        }, window.location.origin);
+                    }
+                } else {
+                    window.parent.postMessage({
+                        type: 'cameraState',
+                        payload: { error: 'Camera or controls not found in global scope' }
+                    }, window.location.origin);
+                }
+                return;
+            }
+
+            if (type === 'setCameraState') {
+                console.log('📷 setCameraState received:', event.data);
+                // Set the camera state
+                const { cameraState } = event.data;
+                console.log('📷 window.camera:', !!window.camera, 'window.controls:', !!window.controls);
+                if (window.camera && window.controls && cameraState) {
+                    try {
+                        console.log('📷 Setting camera position to:', cameraState.position);
+                        window.camera.position.set(
+                            cameraState.position[0],
+                            cameraState.position[1],
+                            cameraState.position[2]
+                        );
+                        window.controls.target.set(
+                            cameraState.target[0],
+                            cameraState.target[1],
+                            cameraState.target[2]
+                        );
+                        if (cameraState.fov && window.camera.fov !== undefined) {
+                            window.camera.fov = cameraState.fov;
+                            window.camera.updateProjectionMatrix();
+                        }
+                        window.controls.update();
+                        console.log('📷 Camera state restored successfully');
+                    } catch (error) {
+                        console.error('Failed to set camera state:', error);
+                    }
+                } else {
+                    console.warn('📷 Camera or controls not available for setCameraState. window.camera:', window.camera, 'window.controls:', window.controls);
+                }
+                return;
+            }
+
+            // Handle shader processing requests from FlowBoard
+            if (type === 'applyShader') {
+                const { imageData, shaderType, uniforms, nodeId } = event.data;
+                console.log('🎨 applyShader request:', shaderType, uniforms);
+
+                (async () => {
+                    try {
+                        // Dynamically import the shader processor
+                        const { shaderProcessor } = await import('./shaderProcessor.js');
+
+                        // Process the image
+                        const result = await shaderProcessor.process(imageData, shaderType, uniforms);
+
+                        // Send result back to parent
+                        window.parent.postMessage({
+                            type: 'shaderResult',
+                            payload: {
+                                imageData: result,
+                                shaderType,
+                                nodeId,
+                                success: true
+                            }
+                        }, window.location.origin);
+
+                        console.log('🎨 Shader processing complete:', shaderType);
+                    } catch (error) {
+                        console.error('🎨 Shader processing error:', error);
+                        window.parent.postMessage({
+                            type: 'shaderResult',
+                            payload: {
+                                error: error.message,
+                                shaderType,
+                                nodeId,
+                                success: false
+                            }
+                        }, window.location.origin);
+                    }
+                })();
+                return;
+            }
+
+            if (type === 'executeCode') {
+                // Inject dynamic importmap if provided
+                if (importmap) {
+                    updateImportmap(importmap);
+                }
+
+                // Prepend base path to asset URLs in the code
+                let modifiedCode = code;
+                if (window.BASE_PATH && window.BASE_PATH !== '/') {
+                    // Replace absolute asset paths with base path
+                    modifiedCode = code.replace(
+                        /(['"`])(\/(?:models|images|textures|assets)\/[^'"`]+)\1/g,
+                        `$1${window.BASE_PATH}$2$1`
+                    );
+                }
+                // 1. Clean up previous script and its URL
+                const oldScript = document.getElementById('user-script');
+                if (oldScript) {
+                    const oldUrl = oldScript.src;
+                    if (oldUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(oldUrl);
+                    }
+                    oldScript.remove();
+                }
+                // Clear any leftover elements from previous runs
+                while (document.body.firstChild) {
+                    document.body.removeChild(document.body.firstChild);
+                }
+
+                // 2. Create a new script from a Blob URL
+                const blob = new Blob([modifiedCode], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+
+                const script = document.createElement('script');
+                script.id = 'user-script';
+                script.type = 'module';
+                script.src = url;
+
+                // 3. Handle errors
+                script.onerror = (error) => {
+                    // This will catch syntax errors in the module itself
+                    window.parent.postMessage({ type: 'error', payload: { message: `Error in script: ${error.message}` } }, window.location.origin);
+                };
+
+                document.body.appendChild(script);
+            }
+        });
+
+        // Notify the parent window that the iframe is ready
+        window.parent.postMessage({ type: 'ready' }, window.location.origin);
+    </script>
+</body>
+</html>

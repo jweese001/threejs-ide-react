@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nPhase 1: External code compatibility - Quick wins\n\nEnable paste-and-play for external Three.js code with minimal conversion.\n\nChanges:\n- Expand CSP whitelist to allow Skypack, unpkg, esm.sh CDNs\n- Add gsap and lil-gui to static importmap\n- Create Galaxy Particle System snippet (150k particles)\n- Fix shader constants (PI, PI2) for external code\n- Add galaxy example to snippet manifest\n\nFeatures:\n- Galaxy snippet demonstrates advanced particle systems\n- Shader animation with custom uniforms\n- OrbitControls for interactive viewing\n- Orange-to-purple color gradient\n\nImpact:\n- Users can now import code from CodePen/tutorials\n- Lower barrier to entry for external examples\n- Foundation for Phase 2 dynamic import resolution\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nSuppress preview.html debug log for empty importmaps\n\nFurther reduced console noise by only logging dynamic importmap \nupdates when external packages are actually loaded.\n\nChanges:\n- Check if importmap has any entries before logging\n- Silent operation when only bundled packages are used\n- Maintains debug visibility for actual external packages\n\nImpact:\n- Completely silent console for bundled-only code\n- Clean, professional user experience\n- Debug info still available when needed (external packages)\n\nTesting:\n- Galaxy snippet: No console output (empty importmap)\n- Skypack URLs: No console output (empty importmap)\n- lodash-es: Shows both App and preview debug logs\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git checkout:*)",
+      "Bash(npm start)",
+      "Bash(npm run dev)",
+      "Bash(npx vite --host)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
