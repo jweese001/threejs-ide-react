@@ -431,6 +431,25 @@ function App() {
           console.warn('📷 Cannot send: iframeRef or cameraState missing');
         }
       }
+
+      // Handle shader processing requests from FlowBoard
+      if (type === 'request' && payload?.action === 'applyShader') {
+        console.log('🎨 FlowBoard applyShader request received:', payload.shaderType);
+        if (iframeRef.current) {
+          iframeRef.current.contentWindow?.postMessage(
+            {
+              type: 'applyShader',
+              imageData: payload.imageData,
+              shaderType: payload.shaderType,
+              uniforms: payload.uniforms,
+              nodeId: payload.nodeId,
+            },
+            window.location.origin
+          );
+        } else {
+          console.warn('🎨 Cannot process shader: iframe not available');
+        }
+      }
       // Note: Other messages (iframe ready, console, etc.) are handled elsewhere
     };
 
@@ -621,6 +640,25 @@ function App() {
           delete (window as Window & { __pendingCameraNodeId?: string }).__pendingCameraNodeId;
         } else if (cameraData.error) {
           console.error('Camera state capture failed:', cameraData.error);
+        }
+      } else if (type === 'shaderResult') {
+        // Forward shader result to FlowBoard
+        const shaderData = payload as { imageData?: string; shaderType?: string; nodeId?: string; success?: boolean; error?: string };
+        if (window.opener && !window.opener.closed) {
+          const message = {
+            type: 'shaderResult',
+            payload: shaderData,
+            timestamp: Date.now(),
+          };
+          // Send to all possible FlowBoard origins
+          for (const origin of FLOWBOARD_ORIGINS) {
+            try {
+              window.opener.postMessage(message, origin);
+            } catch (e) {
+              // Origin didn't match, try next
+            }
+          }
+          console.log('🎨 Sent shader result to FlowBoard:', shaderData.shaderType, shaderData.success ? 'success' : 'failed');
         }
       } else if (type === 'console') {
         // Handle console messages from iframe

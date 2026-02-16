@@ -378,6 +378,47 @@
                 return;
             }
 
+            // Handle shader processing requests from FlowBoard
+            if (type === 'applyShader') {
+                const { imageData, shaderType, uniforms, nodeId } = event.data;
+                console.log('🎨 applyShader request:', shaderType, uniforms);
+
+                (async () => {
+                    try {
+                        // Dynamically import the shader processor
+                        const { shaderProcessor } = await import('./shaderProcessor.js');
+
+                        // Process the image
+                        const result = await shaderProcessor.process(imageData, shaderType, uniforms);
+
+                        // Send result back to parent
+                        window.parent.postMessage({
+                            type: 'shaderResult',
+                            payload: {
+                                imageData: result,
+                                shaderType,
+                                nodeId,
+                                success: true
+                            }
+                        }, window.location.origin);
+
+                        console.log('🎨 Shader processing complete:', shaderType);
+                    } catch (error) {
+                        console.error('🎨 Shader processing error:', error);
+                        window.parent.postMessage({
+                            type: 'shaderResult',
+                            payload: {
+                                error: error.message,
+                                shaderType,
+                                nodeId,
+                                success: false
+                            }
+                        }, window.location.origin);
+                    }
+                })();
+                return;
+            }
+
             if (type === 'executeCode') {
                 // Inject dynamic importmap if provided
                 if (importmap) {
