@@ -364,6 +364,64 @@ const ColorAdjustShader = {
   `,
 };
 
+/**
+ * Chroma Key Shader
+ * Removes a solid color background for compositing
+ * Uniforms: keyColor (RGB 0-1), tolerance (0-1), softness (0-0.5), spill (0-1)
+ */
+const ChromaKeyShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    keyColor: { value: new THREE.Vector3(0, 1, 0) }, // Green screen default
+    tolerance: { value: 0.3 },
+    softness: { value: 0.1 },
+    spill: { value: 0.5 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec3 keyColor;
+    uniform float tolerance;
+    uniform float softness;
+    uniform float spill;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+
+      // Calculate color distance from key color
+      float dist = distance(color.rgb, keyColor);
+
+      // Create alpha mask with soft edge
+      float alpha = smoothstep(tolerance - softness, tolerance + softness, dist);
+
+      // Spill suppression - reduce the key color component in edge pixels
+      vec3 result = color.rgb;
+      if (alpha > 0.0 && alpha < 1.0) {
+        // For pixels on the edge, reduce the key color's influence
+        // Find which channel of keyColor is dominant
+        float maxKey = max(keyColor.r, max(keyColor.g, keyColor.b));
+        if (maxKey > 0.0) {
+          vec3 spillMask = keyColor / maxKey;
+          // Reduce the spill color proportionally
+          vec3 spillReduction = result * spillMask * spill * (1.0 - alpha);
+          result = result - spillReduction;
+          result = clamp(result, 0.0, 1.0);
+        }
+      }
+
+      // Output with true alpha transparency
+      gl_FragColor = vec4(result, alpha);
+    }
+  `,
+};
+
 // ============================================
 // SHADER PROCESSOR CLASS
 // ============================================
@@ -557,6 +615,18 @@ class ShaderProcessor {
         break;
       }
 
+      case 'chromaKey': {
+        const pass = new ShaderPass(ChromaKeyShader);
+        // keyColor comes as [r, g, b] array from FlowBoard
+        const keyColor = uniforms.keyColor ?? [0, 1, 0];
+        pass.uniforms.keyColor.value.set(keyColor[0], keyColor[1], keyColor[2]);
+        pass.uniforms.tolerance.value = uniforms.tolerance ?? 0.3;
+        pass.uniforms.softness.value = uniforms.softness ?? 0.1;
+        pass.uniforms.spill.value = uniforms.spill ?? 0.5;
+        this.composer.addPass(pass);
+        break;
+      }
+
       default:
         console.warn(`Unknown shader type: ${shaderType}`);
     }
@@ -600,4 +670,5 @@ export {
   NoiseShader,
   PosterizeShader,
   ColorAdjustShader,
+  ChromaKeyShader,
 };
