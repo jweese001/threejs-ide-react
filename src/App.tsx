@@ -303,7 +303,8 @@ const CONSOLE_IGNORE_PATTERNS = [
 // FlowBoard integration via window.opener postMessage
 const FLOWBOARD_ORIGINS = [
   'http://localhost:5173',       // Local FlowBoard dev
-  'https://jweese001.github.io', // GitHub Pages production
+  'https://jweese001.github.io', // GitHub Pages (legacy)
+  'https://flow.w33s3.com',      // FlowBoard SaaS production
 ];
 
 function App() {
