@@ -608,7 +608,10 @@ function App() {
           console.log('📤 Sent capture to FlowBoard');
           setIsFlowBoardConnected(true);
         } else if (captureData.error) {
+          // Fail loud: surface the capture failure in the IDE's error overlay
+          // (a silent console line reads as "capture does nothing").
           console.error('Canvas capture failed:', captureData.error);
+          setError({ message: `Capture failed: ${captureData.error}` });
         } else if (!window.opener || window.opener.closed) {
           console.warn('FlowBoard window not available. Open IDE from FlowBoard to enable sending.');
         }
