@@ -268,64 +268,103 @@
                 const canvas = document.querySelector('canvas');
                 const { resolution } = event.data;
 
+                const sendCapture = (imageData, width, height) => {
+                    window.parent.postMessage({
+                        type: 'canvasCaptured',
+                        payload: { imageData, width, height }
+                    }, window.location.origin);
+                };
+                const sendCaptureError = (message) => {
+                    window.parent.postMessage({
+                        type: 'canvasCaptured',
+                        payload: { error: message }
+                    }, window.location.origin);
+                };
+                // A WebGL canvas read without a fresh render (and without
+                // preserveDrawingBuffer) yields a uniformly blank frame.
+                // Detect that so we fail loud instead of returning black.
+                const isEffectivelyBlank = (dataUrl) => new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const c = document.createElement('canvas');
+                            c.width = 16; c.height = 16;
+                            const ctx = c.getContext('2d');
+                            ctx.drawImage(img, 0, 0, 16, 16);
+                            const d = ctx.getImageData(0, 0, 16, 16).data;
+                            let min = 255, max = 0, maxAlpha = 0;
+                            for (let i = 0; i < d.length; i += 4) {
+                                const lum = (d[i] + d[i + 1] + d[i + 2]) / 3;
+                                if (lum < min) min = lum;
+                                if (lum > max) max = lum;
+                                if (d[i + 3] > maxAlpha) maxAlpha = d[i + 3];
+                            }
+                            resolve(maxAlpha === 0 || (max - min) < 2);
+                        } catch (e) {
+                            resolve(false);
+                        }
+                    };
+                    img.onerror = () => resolve(false);
+                    img.src = dataUrl;
+                });
+
                 if (canvas) {
+                    const hasGlobals = !!(window.renderer && window.renderer.render && window.scene && window.camera);
                     try {
                         let imageData;
                         let captureWidth = canvas.width;
                         let captureHeight = canvas.height;
 
-                        // If a specific resolution is requested, resize and capture
-                        if (resolution && (resolution.width !== canvas.width || resolution.height !== canvas.height)) {
-                            // Store original dimensions
+                        if (hasGlobals && resolution && window.renderer.setSize && (resolution.width !== canvas.width || resolution.height !== canvas.height)) {
+                            // Resize, render at the requested resolution, capture, restore
                             const originalWidth = canvas.width;
                             const originalHeight = canvas.height;
 
-                            // Try to access the renderer through global scope
-                            if (window.renderer && window.renderer.setSize && window.camera && window.scene) {
-                                // Resize renderer to requested resolution
-                                window.renderer.setSize(resolution.width, resolution.height);
-                                if (window.camera.aspect !== undefined) {
-                                    window.camera.aspect = resolution.width / resolution.height;
-                                    window.camera.updateProjectionMatrix();
-                                }
-                                // Render at new resolution
-                                window.renderer.render(window.scene, window.camera);
-
-                                captureWidth = resolution.width;
-                                captureHeight = resolution.height;
-                                imageData = canvas.toDataURL('image/png');
-
-                                // Restore original size
-                                window.renderer.setSize(originalWidth, originalHeight);
-                                if (window.camera.aspect !== undefined) {
-                                    window.camera.aspect = originalWidth / originalHeight;
-                                    window.camera.updateProjectionMatrix();
-                                }
-                                window.renderer.render(window.scene, window.camera);
-                            } else {
-                                // Fallback: capture at current resolution if globals aren't available
-                                console.warn('Cannot resize: renderer/camera/scene not found in global scope. Capturing at current resolution.');
-                                imageData = canvas.toDataURL('image/png');
+                            window.renderer.setSize(resolution.width, resolution.height);
+                            if (window.camera.aspect !== undefined) {
+                                window.camera.aspect = resolution.width / resolution.height;
+                                window.camera.updateProjectionMatrix();
                             }
-                        } else {
-                            // No resize needed, capture as-is
+                            window.renderer.render(window.scene, window.camera);
+
+                            captureWidth = resolution.width;
+                            captureHeight = resolution.height;
                             imageData = canvas.toDataURL('image/png');
+
+                            // Restore original size
+                            window.renderer.setSize(originalWidth, originalHeight);
+                            if (window.camera.aspect !== undefined) {
+                                window.camera.aspect = originalWidth / originalHeight;
+                                window.camera.updateProjectionMatrix();
+                            }
+                            window.renderer.render(window.scene, window.camera);
+                        } else if (hasGlobals) {
+                            // Always render fresh before reading pixels — without
+                            // this, renderers created without preserveDrawingBuffer
+                            // capture a blank frame.
+                            window.renderer.render(window.scene, window.camera);
+                            imageData = canvas.toDataURL('image/png');
+                        } else {
+                            // No globals: we can't force a render. Capture as-is,
+                            // then verify it isn't blank before sending.
+                            if (resolution) {
+                                console.warn('Cannot resize: renderer/camera/scene not found in global scope. Capturing at current resolution.');
+                            }
+                            imageData = canvas.toDataURL('image/png');
+                            isEffectivelyBlank(imageData).then((blank) => {
+                                if (blank) {
+                                    sendCaptureError('Capture came back blank. Expose your scene globals — window.renderer, window.scene, window.camera — (or create the renderer with preserveDrawingBuffer: true) and capture again.');
+                                } else {
+                                    sendCapture(imageData, captureWidth, captureHeight);
+                                }
+                            });
+                            return;
                         }
 
-                        window.parent.postMessage({
-                            type: 'canvasCaptured',
-                            payload: {
-                                imageData,
-                                width: captureWidth,
-                                height: captureHeight
-                            }
-                        }, window.location.origin);
+                        sendCapture(imageData, captureWidth, captureHeight);
                     } catch (error) {
                         console.error('Failed to capture canvas:', error);
-                        window.parent.postMessage({
-                            type: 'canvasCaptured',
-                            payload: { error: error.message }
-                        }, window.location.origin);
+                        sendCaptureError(error.message);
                     }
                 } else {
                     window.parent.postMessage({
